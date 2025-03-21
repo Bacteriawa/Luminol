@@ -5,10 +5,10 @@ Subject: [PATCH] Kaiiju Entity tick and removal limiter
 
 
 diff --git a/io/papermc/paper/threadedregions/RegionizedWorldData.java b/io/papermc/paper/threadedregions/RegionizedWorldData.java
-index c6e487a4c14e6b82533881d01f32349b9ae28728..2c747cb8a724cd25c9d724908f92b320741600de 100644
+index b8f1f042342d3fed5fa26df0de07e8e2b0937130..4d9837f11da4dc59fdb945fdb4849c4d1519f5dc 100644
 --- a/io/papermc/paper/threadedregions/RegionizedWorldData.java
 +++ b/io/papermc/paper/threadedregions/RegionizedWorldData.java
-@@ -354,6 +354,7 @@ public final class RegionizedWorldData {
+@@ -358,6 +358,7 @@ public final class RegionizedWorldData {
      private final IteratorSafeOrderedReferenceSet<Mob> navigatingMobs = new IteratorSafeOrderedReferenceSet<>();
      public final ReferenceList<Entity> trackerEntities = new ReferenceList<>(EMPTY_ENTITY_ARRAY); // Moonrise - entity tracker
      public final ReferenceList<Entity> trackerUnloadedEntities = new ReferenceList<>(EMPTY_ENTITY_ARRAY); // Moonrise - entity tracker

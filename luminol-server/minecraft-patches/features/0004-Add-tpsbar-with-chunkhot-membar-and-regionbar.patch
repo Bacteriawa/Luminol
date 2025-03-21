@@ -17,10 +17,10 @@ index 8d67b4629c69d3039b199aaad45533d1acde114e..f7bfeca4b11b9860241d5eb80b6df420
          ((ca.spottedleaf.moonrise.patches.chunk_tick_iteration.ChunkTickServerLevel)(ServerLevel)chunk.getLevel()).moonrise$removeChunkForPlayerTicking(chunk); // Moonrise - chunk tick iteration
      }
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 46375fa81b36b89b79c22f0a7ac6d610ab1183d4..f2124edb487b1d5f6bdc7fa086814f870724363a 100644
+index 9261d83f28af5e057d060741ab900f8cde8f992b..fc088edaa36e7e68ddd23c57e351ef3b31ed5ad8 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1665,7 +1665,44 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1666,7 +1666,44 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          // Folia end - region threading
          //this.tickCount++; // Folia - region threading
          //this.tickRateManager.tick(); // Folia - region threading
