@@ -55,7 +55,7 @@ index 51c126735ace8fdde89ad97b5cab62f244212db0..c7d4d944eb198ac53a3eeae717a25c7d
 +    public void moonrise$write(final abomination.IRegionFile regionFile) throws IOException; // Luminol - Configurable region file format
  }
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index f2124edb487b1d5f6bdc7fa086814f870724363a..ed00a29daccfee1d631bef27c0a3a4ae83140018 100644
+index fc088edaa36e7e68ddd23c57e351ef3b31ed5ad8..5d709b3b47702e7607dafa4a38380c801b228e2d 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -986,10 +986,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
