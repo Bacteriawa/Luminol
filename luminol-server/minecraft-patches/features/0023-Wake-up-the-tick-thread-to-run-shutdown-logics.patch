@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <mrhua269@gmail.com>
+Date: Sat, 22 Mar 2025 12:28:58 +0800
+Subject: [PATCH] Wake up the tick thread to run shutdown logics
+
+A fix of: https://github.com/PaperMC/Folia/issues/338
+
+diff --git a/io/papermc/paper/threadedregions/ScheduledTaskThreadPool.java b/io/papermc/paper/threadedregions/ScheduledTaskThreadPool.java
+index c7627ababadf72231682baa9c056a4082170410a..3b01a88c7a7010b89083b86aef5a5ed9ab9625e8 100644
+--- a/io/papermc/paper/threadedregions/ScheduledTaskThreadPool.java
++++ b/io/papermc/paper/threadedregions/ScheduledTaskThreadPool.java
+@@ -773,6 +773,7 @@ public final class ScheduledTaskThreadPool {
+ 
+         private void halt() {
+             this.setStateVolatile(STATE_HALTED);
++            LockSupport.unpark(this.thread); // Luminol - Wake up the tick thread to run shutdown logics
+         }
+ 
+         private boolean isHalted() {

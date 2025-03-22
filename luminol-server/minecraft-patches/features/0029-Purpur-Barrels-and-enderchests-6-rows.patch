@@ -5,7 +5,7 @@ Subject: [PATCH] Purpur-Barrels-and-enderchests-6-rows
 
 
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index 548f7a2b0b020ff7fff27396942cc0bc9e755afe..b977d0b2c754c227b667ce9fdd3ebb934db8e974 100644
+index 751b011701d6ae373099226ea63ffbafcd24ce6a..e5e946462da9e56344428139768075b7bd228ec0 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
 @@ -1103,6 +1103,10 @@ public abstract class PlayerList {
