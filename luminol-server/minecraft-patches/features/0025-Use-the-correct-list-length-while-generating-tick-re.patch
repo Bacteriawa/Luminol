@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <mrhua269@gmail.com>
+Date: Sat, 22 Mar 2025 20:48:24 +0800
+Subject: [PATCH] Use the correct list length while generating tick report
+
+
+diff --git a/io/papermc/paper/threadedregions/TickData.java b/io/papermc/paper/threadedregions/TickData.java
+index 0383e4dcd611a7568597f46308060f3d7288a564..f53c37d047856f1569b6f637c54ebad03c42006e 100644
+--- a/io/papermc/paper/threadedregions/TickData.java
++++ b/io/papermc/paper/threadedregions/TickData.java
+@@ -178,7 +178,8 @@ public final class TickData {
+             } else {
+                 long totalTickTime = 0L;
+                 long totalCpuTime = 0L;
+-                for (int k = 0, len2 = collapsedData.size(); k < len2; ++k) {
++                //for (int k = 0, len2 = collapsedData.size(); k < len2; ++k) {
++                for (int k = 0, len2 = toCollapse.size(); k < len2; ++k) { // Luminol - Use the correct list length
+                     final TickRegionScheduler.TickTime time = toCollapse.get(k);
+                     totalTickTime += time.tickLength();
+                     totalCpuTime += time.supportCPUTime() ? time.tickCpuTime() : 0L;
