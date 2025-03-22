@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <mrhua269@gmail.com>
+Date: Sat, 22 Mar 2025 17:36:17 +0800
+Subject: [PATCH] Luminol config base
+
+
+diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
+index 9aa664537cc37e44db46d5a2a64ae3116938c681..8d6a6534a134e99e5ee2652d7b0c858d538e69bd 100644
+--- a/net/minecraft/server/Main.java
++++ b/net/minecraft/server/Main.java
+@@ -108,6 +108,7 @@ public class Main {
+                 JvmProfiler.INSTANCE.start(Environment.SERVER);
+             }
+ 
++            me.earthme.luminol.config.LuminolConfig.preLoadConfig(); // Luminol - Luminol config
+             io.papermc.paper.plugin.PluginInitializerManager.load(optionSet); // Paper
+             Bootstrap.bootStrap();
+             Bootstrap.validate();
+diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
+index e3b7184e20bda4983ee1fc5463d91ca0cdd8ec1f..375f4a59333ee1d75fb1acb8c2cbada7866bd48e 100644
+--- a/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -212,6 +212,8 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+         this.paperConfigurations.initializeGlobalConfiguration(this.registryAccess());
+         this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
+         // Paper end - initialize global and world-defaults configuration
++        me.earthme.luminol.config.LuminolConfig.finalizeLoadConfig(); //Luminol - load config file
++        me.earthme.luminol.config.LuminolConfig.setupLatch(); //Luminol - load config file
+         this.server.spark.enableEarlyIfRequested(); // Paper - spark
+         // Paper start - fix converting txt to json file; convert old users earlier after PlayerList creation but before file load/save
+         if (this.convertOldUsers()) {
