@@ -1,0 +1,124 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <mrhua269@gmail.com>
+Date: Sun, 23 Mar 2025 15:51:35 +0800
+Subject: [PATCH] Try rewriting update queue polling
+
+
+diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ThreadedTicketLevelPropagator.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ThreadedTicketLevelPropagator.java
+index 310a8f80debadd64c2d962ebf83b7d0505ce6e42..59d77f04fd0f1c7b7af0314e533b72e1858a7e21 100644
+--- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ThreadedTicketLevelPropagator.java
++++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ThreadedTicketLevelPropagator.java
+@@ -151,6 +151,15 @@ public abstract class ThreadedTicketLevelPropagator {
+     private boolean performUpdate(final Section section, final UpdateQueue.UpdateQueueNode node, final Propagator propagator,
+                                   final ReentrantAreaLock ticketLock, final ReentrantAreaLock schedulingLock,
+                                   final List<ChunkProgressionTask> scheduledTasks, final List<NewChunkHolder> changedFullStatus) {
++        // Luminol - Try rewriting update queue polling
++        if (section == null) {
++            if (node != null) {
++                this.updateQueue.remove(node);
++            }
++            return false;
++        }
++        // Luminol end
++
+         final int sectionX = section.sectionX;
+         final int sectionZ = section.sectionZ;
+ 
+@@ -334,6 +343,7 @@ public abstract class ThreadedTicketLevelPropagator {
+ 
+         // finished
+         if (node != null) {
++            node.releaseUpdating(); // Luminol - Try rewriting update queue polling
+             this.updateQueue.remove(node);
+         }
+ 
+@@ -468,7 +478,8 @@ public abstract class ThreadedTicketLevelPropagator {
+             }
+         }
+ 
+-        public UpdateQueueNode acquireNextOrWait(final long maxOrder) {
++        // Luminol start - Try rewriting update queue polling
++        /*public UpdateQueueNode acquireNextOrWait(final long maxOrder) {
+             final List<UpdateQueueNode> blocking = new ArrayList<>();
+ 
+             node_search:
+@@ -502,8 +513,63 @@ public abstract class ThreadedTicketLevelPropagator {
+                 await(blocking.get(0));
+             }
+ 
++            return null;
++        }*/
++
++        public UpdateQueueNode acquireNextOrWait(final long maxOrder) {
++            UpdateQueueNode firstConflict = null;
++            UpdateQueueNode prevProcessed = null;
++
++            for (UpdateQueueNode curr = this.getHeadAcquire(); curr != null && curr.order <= maxOrder; curr = curr.getNextVolatile()) {
++                if (curr.getSectionVolatile() == null) {
++                    continue;
++                }
++
++                if (!curr.tryAcquireUpdating()) {
++                    continue;
++                }
++
++                if (curr.getSectionVolatile() == null) {
++                    curr.releaseUpdating();
++                    continue;
++                }
++
++                boolean hasConflict = false;
++                for (UpdateQueueNode checked = prevProcessed; checked != null; checked = checked.getNextVolatile()) {
++                    if (checked != curr && curr.intersects(checked)) {
++                        hasConflict = true;
++                        break;
++                    }
++                }
++
++                if (hasConflict) {
++                    if (firstConflict == null) {
++                        firstConflict = curr;
++                    }
++                    curr.releaseUpdating();
++                    continue;
++                }
++
++                if (firstConflict != null) {
++                    this.append(firstConflict);
++                }
++
++                if (prevProcessed == null) {
++                    prevProcessed = curr;
++                } else {
++                    prevProcessed.setNextPlain(curr);
++                }
++
++                return curr;
++            }
++
++            if (firstConflict != null) {
++                this.append(firstConflict);
++            }
++
+             return null;
+         }
++        // Luminol end
+ 
+         public UpdateQueueNode peek() {
+             for (UpdateQueueNode head = this.getHeadOpaque(), curr = head;;) {
+@@ -689,6 +755,15 @@ public abstract class ThreadedTicketLevelPropagator {
+             private final boolean getAndSetUpdatingVolatile(final boolean value) {
+                 return (boolean)UPDATING_HANDLE.getAndSet(this, value);
+             }
++            // Luminol - Try rewriting update queue polling
++            public final boolean tryAcquireUpdating() {
++                return (boolean) UPDATING_HANDLE.compareAndSet(this, false, true);
++            }
++
++            public final void releaseUpdating() {
++                UPDATING_HANDLE.setVolatile(this, false);
++            }
++            // Luminol end
+         }
+     }
+ 
