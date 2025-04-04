@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <mrhua269@gmail.com>
+Date: Fri, 4 Apr 2025 08:17:32 +0800
+Subject: [PATCH] Correct isWatched method in ScheduledTaskThreadPool
+
+
+diff --git a/io/papermc/paper/threadedregions/ScheduledTaskThreadPool.java b/io/papermc/paper/threadedregions/ScheduledTaskThreadPool.java
+index 5c591b0d6eac45d6094ce44bf62ad976bf995e66..287d8b929d1c0802705a7ff276e4146682203061 100644
+--- a/io/papermc/paper/threadedregions/ScheduledTaskThreadPool.java
++++ b/io/papermc/paper/threadedregions/ScheduledTaskThreadPool.java
+@@ -1229,7 +1229,7 @@ public final class ScheduledTaskThreadPool {
+         }
+ 
+         public boolean isWatched() {
+-            return (boolean)TAKEN_HANDLE.getVolatile(this);
++            return (boolean)WATCHED_HANDLE.getVolatile(this); // Luminol - Try fixing scheduling call issue
+         }
+ 
+         public long getLastTaskNotify() {
