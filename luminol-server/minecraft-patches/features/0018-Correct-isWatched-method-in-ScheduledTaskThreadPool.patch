@@ -5,7 +5,7 @@ Subject: [PATCH] Correct isWatched method in ScheduledTaskThreadPool
 
 
 diff --git a/io/papermc/paper/threadedregions/ScheduledTaskThreadPool.java b/io/papermc/paper/threadedregions/ScheduledTaskThreadPool.java
-index 5c591b0d6eac45d6094ce44bf62ad976bf995e66..287d8b929d1c0802705a7ff276e4146682203061 100644
+index 2f61f72087ea07e8d29bf6d5c264e217b20eb377..3694b01f0dc04f6de2df1d926a9208f5711a3a8b 100644
 --- a/io/papermc/paper/threadedregions/ScheduledTaskThreadPool.java
 +++ b/io/papermc/paper/threadedregions/ScheduledTaskThreadPool.java
 @@ -1229,7 +1229,7 @@ public final class ScheduledTaskThreadPool {

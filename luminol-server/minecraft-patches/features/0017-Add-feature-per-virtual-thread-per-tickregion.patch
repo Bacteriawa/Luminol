@@ -1,0 +1,512 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <mrhua269@gmail.com>
+Date: Sun, 6 Apr 2025 12:51:11 +0800
+Subject: [PATCH] Add feature: per virtual thread per tickregion
+
+
+diff --git a/io/papermc/paper/threadedregions/PerThreadSchedulerPool.java b/io/papermc/paper/threadedregions/PerThreadSchedulerPool.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..b49b4b02c3d38174a0bb8d171e1f1e65320bdeca
+--- /dev/null
++++ b/io/papermc/paper/threadedregions/PerThreadSchedulerPool.java
+@@ -0,0 +1,183 @@
++package io.papermc.paper.threadedregions;
++
++import it.unimi.dsi.fastutil.objects.Reference2ObjectLinkedOpenHashMap;
++import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
++import it.unimi.dsi.fastutil.objects.Reference2ObjectMaps;
++import org.jetbrains.annotations.NotNull;
++
++import java.util.Arrays;
++import java.util.concurrent.ThreadFactory;
++import java.util.concurrent.atomic.AtomicBoolean;
++import java.util.concurrent.locks.LockSupport;
++
++public class PerThreadSchedulerPool {
++    private final ThreadFactory factory;
++    private final COWArrayList<Worker> workers = new COWArrayList<>(Worker.class);
++    private final Reference2ObjectMap<ScheduledTaskThreadPool.SchedulableTick, Worker> task2Workers = Reference2ObjectMaps.synchronize(new Reference2ObjectLinkedOpenHashMap<>());
++
++    public PerThreadSchedulerPool(ThreadFactory factory) {
++        this.factory = factory;
++    }
++
++    public void schedule(ScheduledTaskThreadPool.SchedulableTick task) {
++        final Worker cretedWorker = new Worker(this.factory, task);
++
++        this.task2Workers.put(task, cretedWorker);
++        this.workers.add(cretedWorker);
++
++        cretedWorker.active();
++    }
++
++    public void notifyTasks(ScheduledTaskThreadPool.SchedulableTick task) {
++        final Worker target = this.task2Workers.get(task);
++
++        if (target == null) {
++            return;
++        }
++
++        target.notifyToTask();
++    }
++
++    public void halt() {
++        final Worker[] workers = this.workers.getArray();
++
++        for (Worker worker : workers) {
++            worker.shutdown();
++        }
++    }
++
++    public int getTotalThreadCount() {
++        return this.workers.getArray().length;
++    }
++
++    public Thread[] getAllAliveThreads() {
++        return Arrays.stream(this.workers.getArray()).map(Worker::getOwner).toArray(Thread[]::new);
++    }
++
++    public boolean join(long timeoutNanos) {
++        long deadline = System.nanoTime() + timeoutNanos;
++
++        for (;;) {
++            final Worker[] workers = this.workers.getArray();
++
++            if (workers.length == 0) {
++                return true;
++            }
++
++            Thread.yield();
++            LockSupport.parkNanos(1);
++
++            if (System.nanoTime() > deadline) {
++                return false;
++            }
++        }
++    }
++
++    public final class Worker implements Runnable {
++        private final Thread thread;
++        private final ScheduledTaskThreadPool.SchedulableTick task;
++
++        private final AtomicBoolean shutdown = new AtomicBoolean(false);
++        private final AtomicBoolean running = new AtomicBoolean(true);
++
++        public Worker(@NotNull ThreadFactory threadFactory, ScheduledTaskThreadPool.SchedulableTick task) {
++            this.thread = threadFactory.newThread(this);
++            this.task = task;
++
++            if (!this.task.setScheduled()) {
++                throw new IllegalArgumentException("Task is already scheduled");
++            }
++        }
++
++        @Override
++        public void run() {
++            TickThreadRunnerDataCarrier.CARRIER_THREAD_LOCAL.set(new TickThreadRunnerDataCarrier());
++
++            master_loop:
++            for (;;) {
++                if (!this.task.isScheduled() || this.shutdown.get()) {
++                    break;
++                }
++
++                final long deadline = this.task.getScheduledStart();
++
++                for (;; ) {
++                    final long currTime = System.nanoTime();
++
++                    if (currTime >= deadline) {
++                        // we will use it in setting to ticking state
++                        // containing cas operations so we need to process the fallback
++                        if (this.task.upgradeToScheduledTasks()) {
++                            break;
++                        }
++                    }
++
++                    final boolean hasTasks = this.task.hasTasks();  // check for tasks
++
++                    if (hasTasks) {
++                        // containing cas operations so we need to process the fallback
++                        if (!this.task.upgradeToScheduledTasks()) {
++                            continue;
++                        }
++
++                        // task sate and run tasks
++                        final boolean taskProcessed = this.task.tasks(() -> System.nanoTime() >= deadline);
++
++                        // containing cas operations so we need to process the fallback
++                        // also might be cancelled
++                        if (!taskProcessed) {
++                            // check for cancelled
++                            continue master_loop;
++                        }else {
++                            continue;
++                        }
++                    }
++
++                    Thread.yield();
++                    LockSupport.parkNanos(1_000L);
++                }
++
++                boolean ticked = this.task.tick();
++
++                if (!ticked) {
++                    break;
++                }
++            }
++
++            TickThreadRunnerDataCarrier.CARRIER_THREAD_LOCAL.remove();
++            PerThreadSchedulerPool.this.task2Workers.remove(this.task);
++            PerThreadSchedulerPool.this.workers.remove(this);
++            this.running.set(false);
++        }
++
++        public void active() {
++            this.thread.start();
++        }
++
++        public Thread getOwner() {
++            return this.thread;
++        }
++
++        public void notifyToTask() {
++            LockSupport.unpark(this.thread);
++        }
++
++        public boolean running() {
++            return this.running.get();
++        }
++
++        public void shutdown() {
++            this.shutdown.set(true);
++            LockSupport.unpark(this.thread);
++        }
++    }
++
++    public static class TickThreadRunnerDataCarrier {
++        ThreadedRegionizer.ThreadedRegion<TickRegions.TickRegionData, TickRegions.TickRegionSectionData> currentTickingRegion;
++        RegionizedWorldData currentTickingWorldRegionizedData;
++        ScheduledTaskThreadPool.SchedulableTick currentTickingTask;
++        ca.spottedleaf.leafprofiler.RegionizedProfiler.Handle profiler = ca.spottedleaf.leafprofiler.RegionizedProfiler.Handle.NO_OP_HANDLE;
++
++        public static final ThreadLocal<TickThreadRunnerDataCarrier> CARRIER_THREAD_LOCAL = new ThreadLocal<>();
++    }
++}
+diff --git a/io/papermc/paper/threadedregions/ScheduledTaskThreadPool.java b/io/papermc/paper/threadedregions/ScheduledTaskThreadPool.java
+index 5c591b0d6eac45d6094ce44bf62ad976bf995e66..2f61f72087ea07e8d29bf6d5c264e217b20eb377 100644
+--- a/io/papermc/paper/threadedregions/ScheduledTaskThreadPool.java
++++ b/io/papermc/paper/threadedregions/ScheduledTaskThreadPool.java
+@@ -402,7 +402,7 @@ public final class ScheduledTaskThreadPool {
+ 
+         private volatile ScheduledTickTask task;
+ 
+-        private int getStateVolatile() {
++        public int getStateVolatile() { // Luminol - Per thread for tickregion
+             return (int)STATE_HANDLE.getVolatile(this);
+         }
+ 
+@@ -414,23 +414,23 @@ public final class ScheduledTaskThreadPool {
+             return (int)STATE_HANDLE.compareAndExchange(this, expect, update);
+         }
+ 
+-        private boolean isScheduled() {
++        public boolean isScheduled() { // Luminol - Per thread for tickregion
+             return this.getStateVolatile() == STATE_SCHEDULED;
+         }
+ 
+-        private boolean upgradeToScheduledTasks() {
++        public boolean upgradeToScheduledTasks() { // Luminol - Per thread for tickregion
+             return STATE_SCHEDULED == this.compareAndExchangeStateVolatile(STATE_SCHEDULED, STATE_SCHEDULED_TASKS);
+         }
+ 
+-        private boolean setScheduled() {
++        public boolean setScheduled() { // Luminol - Per thread for tickregion
+             return STATE_UNSCHEDULED == this.compareAndExchangeStateVolatile(STATE_UNSCHEDULED, STATE_SCHEDULED);
+         }
+ 
+-        private boolean setScheduledTasks() {
++        public boolean setScheduledTasks() { // Luminol - Per thread for tickregion
+             return STATE_UNSCHEDULED == this.compareAndExchangeStateVolatile(STATE_UNSCHEDULED, STATE_SCHEDULED_TASKS);
+         }
+ 
+-        private boolean cancel() {
++        public boolean cancel() { // Luminol - Per thread for tickregion
+             for (int currState = this.getStateVolatile();;) {
+                 switch (currState) {
+                     case STATE_UNSCHEDULED: {
+@@ -544,14 +544,14 @@ public final class ScheduledTaskThreadPool {
+             }
+         }
+ 
+-        protected final long getScheduledStart() {
++        public final long getScheduledStart() { // Luminol - Per thread for tickregion
+             return this.scheduledStart;
+         }
+ 
+         /**
+          * If this task is scheduled, then this may only be invoked during {@link #runTick()}
+          */
+-        protected final void setScheduledStart(final long value) {
++        public final void setScheduledStart(final long value) { // Luminol - Per thread for tickregion
+             this.scheduledStart = value;
+         }
+ 
+@@ -565,7 +565,7 @@ public final class ScheduledTaskThreadPool {
+          */
+         public abstract boolean runTick();
+ 
+-        private boolean tick() {
++        public boolean tick() { // Luminol - Per thread for tickregion
+             if (!this.markTicking()) {
+                 return false;
+             }
+@@ -610,7 +610,7 @@ public final class ScheduledTaskThreadPool {
+          */
+         public abstract boolean runTasks(final BooleanSupplier canContinue);
+ 
+-        private boolean tasks(final BooleanSupplier canContinue) {
++        public boolean tasks(final BooleanSupplier canContinue) { // Luminol - Per thread for tickregion
+             if (!this.markTasks()) {
+                 return false;
+             }
+@@ -692,12 +692,12 @@ public final class ScheduledTaskThreadPool {
+         private Thread thread;
+ 
+         // no scheduled ticks
+-        private static final int STATE_IDLE      = 1 << 0;
+-        private static final int STATE_WAITING   = 1 << 1;
+-        private static final int STATE_TASKS     = 1 << 2;
+-        private static final int STATE_INTERRUPT = 1 << 3;
+-        private static final int STATE_TICKING   = 1 << 4;
+-        private static final int STATE_HALTED    = 1 << 5;
++        public static final int STATE_IDLE      = 1 << 0; // Luminol - Per thread for tickregion
++        public static final int STATE_WAITING   = 1 << 1; // Luminol - Per thread for tickregion
++        public static final int STATE_TASKS     = 1 << 2; // Luminol - Per thread for tickregion
++        public static final int STATE_INTERRUPT = 1 << 3; // Luminol - Per thread for tickregion
++        public static final int STATE_TICKING   = 1 << 4; // Luminol - Per thread for tickregion
++        public static final int STATE_HALTED    = 1 << 5; // Luminol - Per thread for tickregion
+         private volatile int state = STATE_INTERRUPT; // set to INTERRUPT initially so that tasks may be stolen on start
+         private static final VarHandle STATE_HANDLE = ConcurrentUtil.getVarHandle(TickThreadRunner.class, "state", int.class);
+ 
+@@ -720,7 +720,7 @@ public final class ScheduledTaskThreadPool {
+             STATE_HANDLE.setVolatile(this, value);
+         }
+ 
+-        private int compareAndExchangeStateVolatile(final int expect, final int update) {
++        public int compareAndExchangeStateVolatile(final int expect, final int update) { // Luminol - Per thread for tickregion
+             return (int)STATE_HANDLE.compareAndExchange(this, expect, update);
+         }
+ 
+diff --git a/io/papermc/paper/threadedregions/TickRegionScheduler.java b/io/papermc/paper/threadedregions/TickRegionScheduler.java
+index a8608e8bed64a4da4ed340ab3837b082d6715437..fc14f5780effce99a9768a1ffbb338e61228b252 100644
+--- a/io/papermc/paper/threadedregions/TickRegionScheduler.java
++++ b/io/papermc/paper/threadedregions/TickRegionScheduler.java
+@@ -40,65 +40,92 @@ public final class TickRegionScheduler {
+     }
+     // Folia end - watchdog
+ 
+-    private final ScheduledTaskThreadPool scheduler;
++    private final PerThreadSchedulerPool scheduler; // Luminol - Per thread for tickregion
+ 
+     public TickRegionScheduler() {
+-        this.scheduler = new ScheduledTaskThreadPool(new ThreadFactory() {
++        this.scheduler = new PerThreadSchedulerPool(new ThreadFactory() { // Luminol - Per thread for tickregion
+             private final AtomicInteger idGenerator = new AtomicInteger();
+ 
+             @Override
+             public Thread newThread(final Runnable run) {
+-                final Thread ret = new TickThreadRunner(run, "Region Scheduler Thread #" + this.idGenerator.getAndIncrement());
+-                ret.setUncaughtExceptionHandler(TickRegionScheduler.this::uncaughtException);
++                //final Thread ret = new TickThreadRunner(run, "Region Scheduler Thread #" + this.idGenerator.getAndIncrement()); // Luminol - Per thread for tickregion
++                // Luminol start - Per thread for  tickregion
++                final Thread ret = Thread.ofVirtual()
++                    .name("Region Scheduler Thread #" + this.idGenerator.getAndIncrement())
++                        .uncaughtExceptionHandler(TickRegionScheduler.this::uncaughtException)
++                    .factory()
++                    .newThread(() -> {
++                        try {
++                            run.run();
++                        }finally {
++                            TickThread.VIRTUAL_TICK_THREAD_GROUP.remove(Thread.currentThread());
++                        }
++                    });
++                TickThread.VIRTUAL_TICK_THREAD_GROUP.add(ret);
++                // Luminol end
+                 return ret;
+             }
+-        }, TimeUnit.MILLISECONDS.toNanos(3L), TimeUnit.MILLISECONDS.toNanos(2L));
++        }); // Luminol - Per thread for tickregion
+     }
+ 
+     public void setThreads(final int threads) {
+-        this.scheduler.setCoreThreads(threads);
++        //this.scheduler.setCoreThreads(threads); // Luminol - Per thread for tickregion
+     }
+ 
+     public int getTotalThreadCount() {
+-        return this.scheduler.getAliveThreads().length;
++        return this.scheduler.getTotalThreadCount(); // Luminol - Per thread for tickregion
+     }
+ 
+     private static void setTickingRegion(final ThreadedRegionizer.ThreadedRegion<TickRegions.TickRegionData, TickRegions.TickRegionSectionData> region) {
+-        final Thread currThread = Thread.currentThread();
++        /*final Thread currThread = Thread.currentThread();
+         if (!(currThread instanceof TickThreadRunner tickThreadRunner)) {
+             throw new IllegalStateException("Must be tick thread runner");
++        }*/
++        var carrier = PerThreadSchedulerPool.TickThreadRunnerDataCarrier.CARRIER_THREAD_LOCAL.get(); // Luminol - Per thread for tickregion
++        // Luminol start - Per thread for tickregion
++        if (carrier == null) {
++            throw new IllegalStateException("Must be tick thread runner");
+         }
+-        if (region != null && tickThreadRunner.currentTickingRegion != null) {
++        // Luminol end
++        var currentTickingRegion = carrier.currentTickingRegion; // Luminol - Per thread for tickregion
++        if (region != null && currentTickingRegion != null) { // Luminol - Per thread for tickregion
+             throw new IllegalStateException("Trying to double set ticking region!");
+         }
+-        if (region == null && tickThreadRunner.currentTickingRegion == null) {
++        if (region == null && currentTickingRegion == null) { // Luminol - Per thread for tickregion
+             throw new IllegalStateException("Trying to double unset ticking region!");
+         }
+-        tickThreadRunner.currentTickingRegion = region;
++        carrier.currentTickingRegion = region; // Luminol - Per thread for tickregion
+         if (region != null) {
+-            tickThreadRunner.currentTickingWorldRegionizedData = region.regioniser.world.worldRegionData.get();
++            carrier.currentTickingWorldRegionizedData = region.regioniser.world.worldRegionData.get(); // Luminol - Per thread for tickregion
+             // Folia start - profiler
+             final ca.spottedleaf.leafprofiler.RegionizedProfiler.Handle profiler = region.getData().profiler;
+-            tickThreadRunner.profiler = profiler == null ? ca.spottedleaf.leafprofiler.RegionizedProfiler.Handle.NO_OP_HANDLE : profiler;
++            carrier.profiler = profiler == null ? ca.spottedleaf.leafprofiler.RegionizedProfiler.Handle.NO_OP_HANDLE : profiler; // Luminol - Per thread for tickregion
+             // Folia end - profiler
+         } else {
+-            tickThreadRunner.currentTickingWorldRegionizedData = null;
+-            tickThreadRunner.profiler = ca.spottedleaf.leafprofiler.RegionizedProfiler.Handle.NO_OP_HANDLE; // Folia - profiler
++            carrier.currentTickingWorldRegionizedData = null;// Luminol - Per thread for tickregion
++            carrier.profiler = ca.spottedleaf.leafprofiler.RegionizedProfiler.Handle.NO_OP_HANDLE; // Folia - profiler // Luminol - Per thread for tickregion
+         }
+     }
+ 
+     private static void setTickTask(final ScheduledTaskThreadPool.SchedulableTick task) {
+-        final Thread currThread = Thread.currentThread();
++        /*final Thread currThread = Thread.currentThread(); // Luminol - Per thread for tickregion
+         if (!(currThread instanceof TickThreadRunner tickThreadRunner)) {
+             throw new IllegalStateException("Must be tick thread runner");
++        }*/ // Luminol - Per thread for tickregion
++        var carrier = PerThreadSchedulerPool.TickThreadRunnerDataCarrier.CARRIER_THREAD_LOCAL.get(); // Luminol - Per thread for tickregion
++        // Luminol start - Per thread for tickregion
++        if (carrier == null) {
++            throw new IllegalStateException("Must be tick thread runner");
+         }
+-        if (task != null && tickThreadRunner.currentTickingTask != null) {
++        // Luminol end
++        final ScheduledTaskThreadPool.SchedulableTick last = carrier.currentTickingTask; // Luminol - Per thread for tickregion
++        if (task != null && last != null) { // Luminol - Per thread for tickregion
+             throw new IllegalStateException("Trying to double set ticking task!");
+         }
+-        if (task == null && tickThreadRunner.currentTickingTask == null) {
++        if (task == null && last == null) { // Luminol - Per thread for tickregion
+             throw new IllegalStateException("Trying to double unset ticking task!");
+         }
+-        tickThreadRunner.currentTickingTask = task;
++        carrier.currentTickingTask = task;
+     }
+ 
+     /**
+@@ -106,11 +133,17 @@ public final class TickRegionScheduler {
+      * If this thread is not a TickThread, then returns {@code null}.
+      */
+     public static ThreadedRegionizer.ThreadedRegion<TickRegions.TickRegionData, TickRegions.TickRegionSectionData> getCurrentRegion() {
+-        final Thread currThread = Thread.currentThread();
++        /*final Thread currThread = Thread.currentThread(); // Luminol - Per thread for tickregion
+         if (!(currThread instanceof TickThreadRunner tickThreadRunner)) {
+             return RegionShutdownThread.getRegion();
++        }*/ // Luminol - Per thread for tickregion
++        // Luminol start - Per thread for tickregion
++        var carrier = PerThreadSchedulerPool.TickThreadRunnerDataCarrier.CARRIER_THREAD_LOCAL.get();
++        if (carrier == null) {
++            return RegionShutdownThread.getRegion();
+         }
+-        return tickThreadRunner.currentTickingRegion;
++        // Luminol end
++        return carrier.currentTickingRegion; // Luminol - Per thread for tickregion
+     }
+ 
+     /**
+@@ -119,11 +152,17 @@ public final class TickRegionScheduler {
+      * If this thread is not a TickThread, then returns {@code null}.
+      */
+     public static RegionizedWorldData getCurrentRegionizedWorldData() {
+-        final Thread currThread = Thread.currentThread();
++        /*final Thread currThread = Thread.currentThread(); // Luminol - Per thread for tickregion
+         if (!(currThread instanceof TickThreadRunner tickThreadRunner)) {
+             return RegionShutdownThread.getWorldData();
++        }*/ // Luminol - Per thread for tickregion
++        // Luminol start - Per thread for tickregion
++        var carrier = PerThreadSchedulerPool.TickThreadRunnerDataCarrier.CARRIER_THREAD_LOCAL.get();
++        if (carrier == null) {
++            return RegionShutdownThread.getWorldData();
+         }
+-        return tickThreadRunner.currentTickingWorldRegionizedData;
++        // Luminol end
++        return carrier.currentTickingWorldRegionizedData; // Luminol - Per thread for tickregion
+     }
+ 
+     /**
+@@ -131,20 +170,32 @@ public final class TickRegionScheduler {
+      * If this thread is not a TickThread, then returns {@code null}.
+      */
+     public static ScheduledTaskThreadPool.SchedulableTick getCurrentTickingTask() {
+-        final Thread currThread = Thread.currentThread();
++        /*final Thread currThread = Thread.currentThread(); // Luminol - Per thread for tickregion
+         if (!(currThread instanceof TickThreadRunner tickThreadRunner)) {
+             return null;
++        }*/ // Luminol - Per thread for tickregion
++        // Luminol start - Per thread for tickregion
++        var carrier = PerThreadSchedulerPool.TickThreadRunnerDataCarrier.CARRIER_THREAD_LOCAL.get();
++        if (carrier == null) {
++            return null;
+         }
+-        return tickThreadRunner.currentTickingTask;
++        // Luminol end
++        return carrier.currentTickingTask;
+     }
+ 
+     // Folia start - profiler
+     public static ca.spottedleaf.leafprofiler.RegionizedProfiler.Handle getProfiler() {
+-        final Thread currThread = Thread.currentThread();
+-        if (!(currThread instanceof TickThreadRunner tickThreadRunner)) {
++        /*final Thread currThread = Thread.currentThread(); // Luminol - Per thread for tickregion
++        if (!(currThread instanceof TickThreadRunner)) { // Luminol - Per thread for tickregion
++            return ca.spottedleaf.leafprofiler.RegionizedProfiler.Handle.NO_OP_HANDLE;
++        }*/ // Luminol - Per thread for tickregion
++        // Luminol start - Per thread for tickregion
++        var carrier = PerThreadSchedulerPool.TickThreadRunnerDataCarrier.CARRIER_THREAD_LOCAL.get();
++        if (carrier == null) {
+             return ca.spottedleaf.leafprofiler.RegionizedProfiler.Handle.NO_OP_HANDLE;
+         }
+-        return tickThreadRunner.profiler;
++        // Luminol end
++        return carrier.profiler; // Luminol - Per thread for tickregion
+     }
+     // Folia end - profiler
+ 
+@@ -171,14 +222,14 @@ public final class TickRegionScheduler {
+     public boolean halt(final boolean sync, final long maxWaitNS) {
+         this.scheduler.halt();
+         if (!sync) {
+-            return this.scheduler.getAliveThreads().length == 0;
++            return this.scheduler.getTotalThreadCount() == 0; // Luminol - Per thread for tickregion
+         }
+ 
+-        return this.scheduler.join(maxWaitNS == 0L ? 0L : Math.max(1L, TimeUnit.NANOSECONDS.toMillis(maxWaitNS)));
++        return this.scheduler.join(maxWaitNS == 0L ? 0L : Math.max(1L, maxWaitNS)); // Luminol - Per thread for tickregion
+     }
+ 
+     void dumpAliveThreadTraces(final String reason) {
+-        for (final Thread thread : this.scheduler.getAliveThreads()) {
++        for (final Thread thread : this.scheduler.getAllAliveThreads()) { // Luminol - Per thread for tickregion
+             if (thread.isAlive()) {
+                 TraceUtil.dumpTraceForThread(thread, reason);
+             }
