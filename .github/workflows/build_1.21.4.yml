@@ -1,10 +1,10 @@
-name: Luminol CI - dev/1.21.4-hardfork-with-new-scheduler
+name: Luminol CI - dev/per-virtual-thread-tickregion
 
 on:
     push:
-      branches: [ "dev/1.21.4-hardfork-with-new-scheduler" ]
+      branches: [ "dev/per-virtual-thread-tickregion" ]
     pull_request:
-      branches: [ "dev/1.21.4-hardfork-with-new-scheduler" ]
+      branches: [ "dev/per-virtual-thread-tickregion" ]
 
 permissions: write-all
 
