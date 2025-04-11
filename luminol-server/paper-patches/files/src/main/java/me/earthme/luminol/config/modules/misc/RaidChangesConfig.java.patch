@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/src/main/java/me/earthme/luminol/config/modules/misc/RaidChangesConfig.java
-@@ -1,0 +_,37 @@
+@@ -1,0 +_,36 @@
 +package me.earthme.luminol.config.modules.misc;
 +
 +import me.earthme.luminol.config.ConfigInfo;
@@ -24,8 +24,7 @@
 +
 +    @ConfigInfo(baseName = "bad-omen-infinite", comments =
 +            """
-+                    Enable bad omen infinite time.(Only works when
-+                    give-bad-omen-when-kill-patrol-leader is on)""")
++                    Enable bad omen effect infinite time.""")
 +    public static boolean infinite = false;
 +
 +    @Override
