@@ -1,6 +1,6 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Suisuroru <qwertyuiop14077@qq.com>
-Date: Thu, 20 Feb 2025 23:56:44 +0800
+From: Helvetica Volubi <suisuroru@blue-millennium.fun>
+Date: Fri, 11 Apr 2025 16:53:57 +0800
 Subject: [PATCH] Leaves-Revert-raid-changes
 
 
@@ -21,7 +21,7 @@ index 80f17f33f670018240c854df589cf90cdeab6e70..7976b9ae6688b9a07b2ad19d1af3670f
              if (raidAt == null || raidAt.getRaidOmenLevel() < raidAt.getMaxRaidOmenLevel()) {
                  serverPlayer.addEffect(new MobEffectInstance(MobEffects.RAID_OMEN, 600, amplifier));
 diff --git a/net/minecraft/world/entity/raid/Raider.java b/net/minecraft/world/entity/raid/Raider.java
-index 7c385baae81b9a987c0e1e4deb017884600331bc..c2afe945d6a9780ba5f8ac5d6f0b4b2d692fdd51 100644
+index 7c385baae81b9a987c0e1e4deb017884600331bc..d11fdae969241923c9a27b1aefac23088cd0a5b8 100644
 --- a/net/minecraft/world/entity/raid/Raider.java
 +++ b/net/minecraft/world/entity/raid/Raider.java
 @@ -125,6 +125,43 @@ public abstract class Raider extends PatrollingMonster {
@@ -55,7 +55,7 @@ index 7c385baae81b9a987c0e1e4deb017884600331bc..c2afe945d6a9780ba5f8ac5d6f0b4b2d
 +                        }
 +
 +                        i = net.minecraft.util.Mth.clamp(i, 0, 4);
-+                        net.minecraft.world.effect.MobEffectInstance mobeffect1 = new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.BAD_OMEN, 120000, i, false, false, true);
++                        net.minecraft.world.effect.MobEffectInstance mobeffect1 = new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.BAD_OMEN, me.earthme.luminol.config.modules.misc.RaidChangesConfig.infinite ? net.minecraft.world.effect.MobEffectInstance.INFINITE_DURATION : 120000, i, false, false, true);
 +
 +                        if (!serverLevel.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DISABLE_RAIDS)) {
 +                            entityhuman.addEffect(mobeffect1, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.PATROL_CAPTAIN); // CraftBukkit
@@ -68,3 +68,25 @@ index 7c385baae81b9a987c0e1e4deb017884600331bc..c2afe945d6a9780ba5f8ac5d6f0b4b2d
          }
  
          super.die(cause);
+diff --git a/net/minecraft/world/item/component/OminousBottleAmplifier.java b/net/minecraft/world/item/component/OminousBottleAmplifier.java
+index 318f24d67be4daf6993ba547da0540be9c221a75..9a6820fce3977419fd81d802720c318ac15d07c4 100644
+--- a/net/minecraft/world/item/component/OminousBottleAmplifier.java
++++ b/net/minecraft/world/item/component/OminousBottleAmplifier.java
+@@ -28,7 +28,7 @@ public record OminousBottleAmplifier(int value) implements ConsumableListener, T
+ 
+     @Override
+     public void onConsume(Level level, LivingEntity entity, ItemStack stack, Consumable consumable) {
+-        entity.addEffect(new MobEffectInstance(MobEffects.BAD_OMEN, 120000, this.value, false, false, true)); // Paper - properly resend entities - diff on change for below
++        entity.addEffect(new MobEffectInstance(MobEffects.BAD_OMEN, me.earthme.luminol.config.modules.misc.RaidChangesConfig.infinite ? net.minecraft.world.effect.MobEffectInstance.INFINITE_DURATION : 120000, this.value, false, false, true)); // Paper - properly resend entities - diff on change for below
+     }
+ 
+     // Paper start - properly resend entities - collect packets for bundle
+@@ -40,7 +40,7 @@ public record OminousBottleAmplifier(int value) implements ConsumableListener, T
+ 
+     @Override
+     public void addToTooltip(Item.TooltipContext context, Consumer<Component> tooltipAdder, TooltipFlag tooltipFlag) {
+-        List<MobEffectInstance> list = List.of(new MobEffectInstance(MobEffects.BAD_OMEN, 120000, this.value, false, false, true));
++        List<MobEffectInstance> list = List.of(new MobEffectInstance(MobEffects.BAD_OMEN, me.earthme.luminol.config.modules.misc.RaidChangesConfig.infinite ? net.minecraft.world.effect.MobEffectInstance.INFINITE_DURATION : 120000, this.value, false, false, true));
+         PotionContents.addPotionTooltip(list, tooltipAdder, 1.0F, context.tickRate());
+     }
+ }
