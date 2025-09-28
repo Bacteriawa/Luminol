@@ -132,7 +132,11 @@ public class BufferedLinearRegionFile implements IRegionFile {
 
     public void syncIfNeeded() throws IOException {
         // the sync operation is just coping the data from swap file to the master file
-        this.regionObjectLock.readLock().lock(); // so we could acquire read lock simply so that we won't block any other read operations
+        // so we could acquire read lock simply so that we won't block any other read operations
+        if (!this.regionObjectLock.readLock().tryLock()) {
+            return;
+        }
+
         try {
             // skip if closed already
             if (this.isClosedRaw()) {
@@ -681,14 +685,10 @@ public class BufferedLinearRegionFile implements IRegionFile {
         }
 
         public @NotNull ByteBuffer fromCommitedSection(@NotNull ByteBuffer flippedIn) throws IOException {
-            if (flippedIn.isDirect() || !flippedIn.hasArray()) {
-                throw new IOException("Giving buffer is a buffer which is unsupported!");
-            }
+            final byte[] raw = new byte[flippedIn.remaining()];
+            flippedIn.get(raw);
 
-            final byte[] data = flippedIn.array();
-            final int dataStart = flippedIn.arrayOffset() + flippedIn.position();
-            final int dataLen = flippedIn.remaining();
-            final byte[] decompressed = this.lz4Decompressor.decompress(data, dataStart, dataLen);
+            final byte[] decompressed = this.lz4Decompressor.decompress(raw);
 
             return ByteBuffer.wrap(decompressed);
         }
@@ -730,13 +730,13 @@ public class BufferedLinearRegionFile implements IRegionFile {
             final long newDataLength = newData.remaining();
 
             this.hasData = true;
-            this.length = newData.remaining();
+            this.length = newDataLength;
 
             // data is smaller or equal to the local buffer we hold, write it directly
             if (newDataLength <= oldLength) {
-                long offset = this.offset;
+                long localOffset = this.offset;
                 while (newData.hasRemaining()) {
-                    offset += channel.write(newData, offset);
+                    localOffset += channel.write(newData, localOffset);
                 }
 
                 return;
@@ -747,9 +747,9 @@ public class BufferedLinearRegionFile implements IRegionFile {
 
             BufferedLinearRegionFile.this.currentAcquiredIndex += this.length;
 
-            long offset = this.offset;
+            long localOffset = this.offset;
             while (newData.hasRemaining()) {
-                offset += channel.write(newData, offset);
+                localOffset += channel.write(newData, localOffset);
             }
         }
 
@@ -802,6 +802,7 @@ public class BufferedLinearRegionFile implements IRegionFile {
                 ByteBuffer bytebuffer = ByteBuffer.wrap(this.buf, 0, this.count);
 
                 BufferedLinearRegionFile.this.writeChunk(this.pos.x, this.pos.z, bytebuffer);
+                BufferedLinearRegionFile.this.flushInternal();
             } finally {
                 BufferedLinearRegionFile.this.regionObjectLock.writeLock().unlock();
             }

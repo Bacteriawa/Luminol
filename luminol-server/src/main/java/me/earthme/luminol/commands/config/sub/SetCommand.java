@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import org.leavesmc.leaves.command.ArgumentNode;
 import org.leavesmc.leaves.command.CommandContext;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 import static org.leavesmc.leaves.command.CommandUtils.getListClosestMatchingLast;
@@ -73,10 +74,23 @@ public class SetCommand extends ConfigSubcommand {
                             .suggest("<ERROR CONFIG>", net.minecraft.network.chat.Component.literal("This config path does not exist."))
                             .buildFuture();
                 }
-                return builder
-                        .suggest(father.config.getConfig(path), net.minecraft.network.chat.Component.literal("Default value")
-                                .withStyle(style -> style.withColor(net.minecraft.network.chat.TextColor.fromLegacyFormat(net.minecraft.ChatFormatting.GRAY))))
-                        .buildFuture();
+                Object value = father.config.getConfigOrigin(path);
+                String[] suggestions = father.config.getConfigSuggestions(path);
+                builder.suggest(value.toString(), net.minecraft.network.chat.Component.literal("Default value")
+                        .withStyle(style -> style.withColor(net.minecraft.network.chat.TextColor.fromLegacyFormat(net.minecraft.ChatFormatting.GRAY))));
+                if (suggestions == null) {
+                    if (value instanceof Boolean) {
+                        builder.suggest(String.valueOf(!(Boolean) value));
+                    }
+                } else {
+                    for (String s : suggestions) {
+                        if (!Objects.equals(s, value.toString())) {
+                            builder.suggest(s);
+                        }
+                    }
+                }
+
+                return builder.buildFuture();
             }
 
             @Override
@@ -84,7 +98,7 @@ public class SetCommand extends ConfigSubcommand {
                 String path = context.getArgument(PathArgument.class);
                 String value = context.getArgument(ValueArgument.class);
                 if (father.config.setConfig(path, value)) {
-                    father.config.reloadAsync().thenAccept(nullValue -> context.getSender().sendMessage(
+                    father.config.reloadAsync(true).thenAccept(nullValue -> context.getSender().sendMessage(
                             Component
                                     .text("Set Config " + path + " to " + value + " successfully!")
                                     .color(TextColor.color(0, 255, 0))

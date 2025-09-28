@@ -4,10 +4,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ConfigInfo {
-    String name();
-
-    String[] directory() default {};
-
-    String comments() default "";
+public @interface CommandSuggestions {
+    String[] suggest();
 }

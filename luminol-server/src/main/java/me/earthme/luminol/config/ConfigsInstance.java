@@ -2,15 +2,14 @@ package me.earthme.luminol.config;
 
 import com.electronwill.nightconfig.core.UnmodifiableConfig;
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
+import com.mojang.logging.LogUtils;
 import io.papermc.paper.threadedregions.RegionizedServer;
 import me.earthme.luminol.commands.config.ConfigCommand;
 import me.earthme.luminol.config.flags.*;
 import me.earthme.luminol.enums.EnumConfigCategory;
 import me.earthme.luminol.utils.ClassLoadUtil;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,7 +21,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 public class ConfigsInstance {
-    public final Logger logger = LogManager.getLogger();
+    public final Logger logger = LogUtils.getClassLogger();
     private final File baseConfigFolder;
     private final File baseConfigFile;
     private final String name; // used to transform config to another config system
@@ -31,6 +30,7 @@ public class ConfigsInstance {
     private final Set<IConfigModule> allInstanced = new HashSet<>();
     private final Map<String, Object> stagedConfigMap = new HashMap<>();
     private final Map<String, Object> defaultvalueMap = new HashMap<>();
+    private final Map<String, String[]> suggestionsMap = new HashMap<>();
     public final String SPLIT = " # ";
     public boolean alreadyInit = false;
     private CommentedFileConfig configFileInstance;
@@ -62,24 +62,27 @@ public class ConfigsInstance {
     }
 
     public void reload() {
+        reload(true);
+    }
+
+    public void reload(boolean keepComments) {
         RegionizedServer.ensureGlobalTickThread("Reload " + baseConfigFile.getName() + " off global region thread!");
         runUnloadTasks();
         dropAllInstanced();
         try {
-            preLoadConfig();
+            preLoadConfig(keepComments);
             finalizeLoadConfig();
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("Fail to load config file of {}.", name, e);
         }
     }
 
-    @Contract(" -> new")
-    public @NotNull CompletableFuture<Void> reloadAsync() {
-        return CompletableFuture.runAsync(this::reload, task -> RegionizedServer.getInstance().addTask(() -> {
+    public @NotNull CompletableFuture<Void> reloadAsync(boolean keepComments) {
+        return CompletableFuture.runAsync(() -> reload(keepComments), task -> RegionizedServer.getInstance().addTask(() -> {
             try {
                 task.run();
             } catch (Exception e) {
-                logger.error(e);
+                logger.error("Fail to reload config of {}", name, e);
             }
         }));
     }
@@ -102,6 +105,10 @@ public class ConfigsInstance {
     }
 
     public void preLoadConfig() throws IOException {
+        preLoadConfig(true);
+    }
+
+    public void preLoadConfig(boolean keepComments) throws IOException {
         baseConfigFolder.mkdirs();
 
         if (!baseConfigFile.exists()) {
@@ -114,7 +121,7 @@ public class ConfigsInstance {
 
         try {
             instanceAllModule();
-            loadAllModules();
+            loadAllModules(keepComments);
         } catch (Exception e) {
             logger.error("Failed to load config modules!", e);
             throw new RuntimeException(e);
@@ -123,9 +130,9 @@ public class ConfigsInstance {
         saveConfigs();
     }
 
-    private void loadAllModules() throws IllegalAccessException {
+    private void loadAllModules(boolean keepComments) throws IllegalAccessException {
         for (IConfigModule instanced : allInstanced) {
-            loadForSingle(instanced);
+            loadForSingle(instanced, keepComments);
         }
     }
 
@@ -137,39 +144,52 @@ public class ConfigsInstance {
         }
     }
 
-    private void loadForSingle(@NotNull IConfigModule singleConfigModule) throws IllegalAccessException {
+    private void loadForSingle(@NotNull IConfigModule singleConfigModule, boolean keepComments) throws IllegalAccessException {
         ConfigClassInfo configClassInfo = singleConfigModule.getClass().getAnnotation(ConfigClassInfo.class);
         if (configClassInfo == null) {
             return;
         }
-        List<String> category = new ArrayList<>();
-        category.add(configClassInfo.configAttribution().getBaseKeyName());
-        category.addAll(Arrays.asList(configClassInfo.subNames()));
-        category.add(configClassInfo.mainName());
+        final List<String> category = new ArrayList<>();
+        category.add(configClassInfo.category().getBaseKeyName());
+        category.addAll(List.of(configClassInfo.directory()));
+        category.add(configClassInfo.name());
+
         final String fullConfigBasePath = String.join(".", category);
+
+        final String comment = configFileInstance.getComment(fullConfigBasePath);
+        if (comment == null || comment.isBlank()) {
+            String comments0 = configClassInfo.comments();
+            if (!comments0.isBlank()) {
+                configFileInstance.setComment(fullConfigBasePath, comments0);
+            }
+        }
 
         Field[] fields = singleConfigModule.getClass().getDeclaredFields();
 
         for (Field field : fields) {
             int modifiers = field.getModifiers();
             if (Modifier.isStatic(modifiers) && !Modifier.isFinal(modifiers)) {
-                boolean skipLoad = field.getAnnotation(DoNotLoad.class) != null || (alreadyInit && field.getAnnotation(HotReloadUnsupported.class) != null);
+                boolean skipLoad = field.getAnnotation(DoNotLoad.class) != null;
+                boolean doNotReload = alreadyInit && field.getAnnotation(HotReloadUnsupported.class) != null;
                 ConfigInfo configInfo = field.getAnnotation(ConfigInfo.class);
 
                 if (skipLoad || configInfo == null) {
                     continue;
                 }
 
-                final String fullConfigKeyName = fullConfigBasePath + "." + configInfo.baseName();
+                final List<String> keys = new ArrayList<>(List.of(configInfo.directory()));
+                keys.add(configInfo.name());
+
+                final String fullConfigKeyName = fullConfigBasePath + "." + String.join(".", keys);
 
                 field.setAccessible(true);
                 final Object currentValue = field.get(null);
-                boolean removed = configClassInfo.configAttribution() == EnumConfigCategory.REMOVED;
+                boolean removed = configClassInfo.category() == EnumConfigCategory.REMOVED;
                 if (!alreadyInit && !removed) defaultvalueMap.put(fullConfigKeyName, currentValue);
 
                 if (!configFileInstance.contains(fullConfigKeyName) || removed) {
                     for (TransformedConfig transformedConfig : field.getAnnotationsByType(TransformedConfig.class)) {
-                        final String oldConfigKeyName = String.join(".", transformedConfig.category()) + "." + transformedConfig.name();
+                        final String oldConfigKeyName = String.join(".", transformedConfig.directory()) + "." + transformedConfig.name();
                         if (!Objects.equals(transformedConfig.originInstance(), "")) {
                             ConfigManager.registerTransformedConfig(transformedConfig.originInstance(), name, oldConfigKeyName, fullConfigKeyName, transformedConfig);
                         } else {
@@ -192,7 +212,7 @@ public class ConfigsInstance {
                                     }
                                 }
 
-                                if (success) removeConfig(oldConfigKeyName, transformedConfig.category());
+                                if (success) removeConfig(oldConfigKeyName, transformedConfig.directory());
                                 final String comments = configInfo.comments();
 
                                 if (!comments.isBlank()) configFileInstance.setComment(fullConfigKeyName, comments);
@@ -207,7 +227,7 @@ public class ConfigsInstance {
                     }
                     if (configFileInstance.get(fullConfigKeyName) != null) continue;
                     if (currentValue == null) {
-                        throw new UnsupportedOperationException("Config " + configInfo.baseName() + "tried to add an null default value!");
+                        throw new UnsupportedOperationException("Config " + configInfo.name() + "tried to add an null default value!");
                     }
 
                     final String comments = configInfo.comments();
@@ -238,7 +258,21 @@ public class ConfigsInstance {
                     resetConfig(fullConfigKeyName);
                     logger.error("Failed to transform config {}, reset to default!", fullConfigKeyName);
                 }
-                field.set(null, actuallyValue);
+                if (!doNotReload) {
+                    field.set(null, actuallyValue);
+                }
+
+                if (!keepComments) {
+                    final String comments = configInfo.comments();
+                    configFileInstance.setComment(fullConfigKeyName, comments);
+                }
+
+                if (!alreadyInit) {
+                    CommandSuggestions commandSuggestions = field.getAnnotation(CommandSuggestions.class);
+                    if (commandSuggestions != null) {
+                        suggestionsMap.put(fullConfigKeyName, commandSuggestions.suggest());
+                    }
+                }
             }
         }
     }
@@ -310,6 +344,9 @@ public class ConfigsInstance {
 
     public String parseStringFromList(List<?> list) {
         String ret;
+        if (list.isEmpty()) {
+            return "[]";
+        }
         if (list.getFirst() instanceof String) {
             ret = list.stream()
                     .map(obj -> {
@@ -390,7 +427,23 @@ public class ConfigsInstance {
     }
 
     public String getConfig(String key) {
-        return configFileInstance.get(key).toString();
+        return getConfigOrigin(key).toString();
+    }
+
+    public <T> T getConfigOrigin(String[] keys) {
+        return getConfigOrigin(String.join(".", keys));
+    }
+
+    public <T> T getConfigOrigin(String key) {
+        return configFileInstance.get(key);
+    }
+
+    public String[] getConfigSuggestions(String[] keys) {
+        return getConfigSuggestions(String.join(".", keys));
+    }
+
+    public String[] getConfigSuggestions(String key) {
+        return suggestionsMap.get(key);
     }
 
     public CommentedFileConfig getFileInstance() {
@@ -518,5 +571,18 @@ public class ConfigsInstance {
             }
         }
         result.put(_key, value);
+    }
+
+    public void clean() {
+        Map<String, Object> validValues = new HashMap<>();
+        Map<String, String> validComments = new HashMap<>();
+        for (String key : defaultvalueMap.keySet()) {
+            validValues.put(key, configFileInstance.get(key));
+            validComments.put(key, configFileInstance.getComment(key));
+        }
+        configFileInstance.clear();
+        validValues.forEach(configFileInstance::set);
+        validComments.forEach(configFileInstance::setComment);
+        saveConfigs();
     }
 }

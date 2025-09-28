@@ -1,8 +1,8 @@
-package me.earthme.luminol.config;
+package me.earthme.luminol.utils;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
-import me.earthme.luminol.utils.DialogUtil;
+import me.earthme.luminol.config.ConfigsInstance;
 import net.kyori.adventure.text.format.TextColor;
 import net.minecraft.commands.functions.StringTemplate;
 import net.minecraft.network.chat.Component;
@@ -40,7 +40,8 @@ public class CommandDialog {
 
         if ((!prefix.isEmpty() && !prefix.endsWith("."))
                 || (config.completeConfigPath(prefix, dotCount + 1).size()
-                == config.completeConfigPath(prefix, dotCount + 2).size())) {
+                == config.completeConfigPath(prefix, dotCount + 2).size())
+                || (config.completeConfigPath(prefix, dotCount + 1).isEmpty())) {
             List<String> list = config.getSingleConfig(prefix);
             if (list.isEmpty() && !prefix.endsWith(".")) {
                 prefix += ".";
@@ -59,6 +60,13 @@ public class CommandDialog {
         List<String> keyList = config.completeConfigPath(prefix);
         DialogUtil.DialogBuilder builder = new DialogUtil.DialogBuilder();
         for (String key : keyList) {
+            if (config.completeConfigPath(key, dotCount + 1).size()
+                    == config.completeConfigPath(key, dotCount + 2).size()) {
+                if (config.completeConfigPath(key, -1).size() != config.completeConfigPath(key, dotCount + 1).size()
+                        || config.completeConfigPath(key, dotCount + 1).isEmpty()) {
+                    continue;
+                }
+            }
             String raw = name + "config open-gui " + key + ".$(missing)";
             StringTemplate template = StringTemplate.fromString(raw);
             CommandTemplate commandTemplate = new CommandTemplate(new ParsedTemplate(raw, template));
@@ -110,7 +118,7 @@ public class CommandDialog {
         for (Map.Entry<String, String> entry : map.entrySet()) {
             config.setConfig(entry.getKey(), entry.getValue());
         }
-        config.reloadAsync().thenAccept(nullValue -> sender.sendMessage(
+        config.reloadAsync(true).thenAccept(nullValue -> sender.sendMessage(
                 net.kyori.adventure.text.Component
                         .text("Apply config update successfully!")
                         .color(TextColor.color(0, 255, 0))

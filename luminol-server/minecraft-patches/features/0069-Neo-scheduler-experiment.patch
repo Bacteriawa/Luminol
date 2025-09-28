@@ -223,7 +223,7 @@ index 25a0b1d56652e4455a188d0f413581638d5ef538..9c03bd36f02566d4c2ba8e298458cadf
                      return true;
                  }
 diff --git a/io/papermc/paper/threadedregions/RegionizedWorldData.java b/io/papermc/paper/threadedregions/RegionizedWorldData.java
-index 37ea987cf51917fe5b52b8a9bb887ee49de99a20..72a21b7285f0d901c6898e3cb919a62a273e7193 100644
+index ab5a181d0cc7e65a4a10381cbf8ddf011ceb2ba7..271ef7c6ea710360ece9f046dcfb42eb6e91bfac 100644
 --- a/io/papermc/paper/threadedregions/RegionizedWorldData.java
 +++ b/io/papermc/paper/threadedregions/RegionizedWorldData.java
 @@ -7,6 +7,7 @@ import ca.spottedleaf.moonrise.common.util.CoordinateUtils;
@@ -269,7 +269,7 @@ index 37ea987cf51917fe5b52b8a9bb887ee49de99a20..72a21b7285f0d901c6898e3cb919a62a
      public final io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList entitySchedulerTickList = new io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList();
      private final ReferenceList<Entity> allEntities = new ReferenceList<>(EMPTY_ENTITY_ARRAY);
 @@ -533,7 +538,9 @@ public final class RegionizedWorldData {
-     public final Map<Long, ChunkSectionItemEntityMovementTracker> itemEntityMovementTrackerMap = new HashMap<>();
+     public final Map<Long, ChunkSectionItemEntityMovementTracker> itemEntityMovementTrackerMap = new it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap<>();
      // Luminol end
  
 -    public RegionizedWorldData(final ServerLevel world) {
