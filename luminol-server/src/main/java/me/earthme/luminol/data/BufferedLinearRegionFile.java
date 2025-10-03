@@ -6,9 +6,9 @@ import ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO;
 import com.github.luben.zstd.ZstdInputStream;
 import com.github.luben.zstd.ZstdOutputStream;
 import me.earthme.luminol.utils.BufferedLinearRegionFileFlusher;
-import net.jpountz.lz4.LZ4CompressorWithLength;
-import net.jpountz.lz4.LZ4DecompressorWithLength;
+import net.jpountz.lz4.LZ4Compressor;
 import net.jpountz.lz4.LZ4Factory;
+import net.jpountz.lz4.LZ4FastDecompressor;
 import net.jpountz.xxhash.XXHash32;
 import net.jpountz.xxhash.XXHashFactory;
 import net.minecraft.nbt.CompoundTag;
@@ -134,6 +134,7 @@ public class BufferedLinearRegionFile implements IRegionFile {
         // the sync operation is just coping the data from swap file to the master file
         // so we could acquire read lock simply so that we won't block any other read operations
         if (!this.regionObjectLock.readLock().tryLock()) {
+            BEING_SYNCED_HANDLE.set(this, false); // mark as not being synced
             return;
         }
 
@@ -294,12 +295,15 @@ public class BufferedLinearRegionFile implements IRegionFile {
             sectorSize += sector.length;
         }
 
+        boolean compacted = false;
         // try auto compact to clean the garbage area
         if (spareSize > SWAP_FILE_AUTO_COMPACT_SIZE && (double) spareSize > ((double) sectorSize) * SWAP_FILE_AUTO_COMPACT_PERCENT) {
+            compacted = true;
             this.compactSwapFile();
         }
 
-        if (!Files.exists(this.masterFilePath)) {
+        // prevent syncing after compact because it could be time costing sometimes
+        if (!Files.exists(this.masterFilePath) && !compacted) {
             this.syncToMasterFile();
         }
     }
@@ -328,25 +332,26 @@ public class BufferedLinearRegionFile implements IRegionFile {
 
         final Sector[] newSectorsToBeReplaced = new Sector[this.sectors.length];
 
-        System.arraycopy(this.sectors, 0, newSectorsToBeReplaced, 0, this.sectors.length);
+        for (int i = 0; i < this.sectors.length; i++) {
+            final Sector old = this.sectors[i];
+
+            if (old.hasData()) {
+                newSectorsToBeReplaced[i] = old;
+                continue;
+            }
+
+            newSectorsToBeReplaced[i] = new Sector(i, -1, 0);
+        }
+
+        long newAcquiredIndex;
 
         final Path targetTemp = new File(this.swapFilePath.toString() + ".tmp").toPath();
         try (FileChannel tempChannel = FileChannel.open(
                 targetTemp,
-                StandardOpenOption.CREATE,
+                StandardOpenOption.CREATE_NEW,
                 StandardOpenOption.WRITE,
                 StandardOpenOption.READ
         )) {
-            // get the latest head in file
-            final ByteBuffer headerBuffer = ByteBuffer.allocate(this.headerSize());
-            this.swapFileChannel.read(headerBuffer, 0);
-            headerBuffer.flip();
-
-            long offset = 0;
-            while (headerBuffer.hasRemaining()) {
-                offset += tempChannel.write(headerBuffer, offset);
-            }
-
             long offsetPointer = this.headerSize();
             tempChannel.position(offsetPointer);
 
@@ -368,20 +373,22 @@ public class BufferedLinearRegionFile implements IRegionFile {
             }
 
             tempChannel.force(true);
-            this.currentAcquiredIndex = offsetPointer;
+
+            newAcquiredIndex = offsetPointer;
         } catch (Exception ex) {
             // recalculate acquired index
             this.recalculateAcquiredIndex();
             // delete the target temp file
             Files.deleteIfExists(targetTemp);
             // fast-fail
+            this.markClosed(); // prevent new writing & sync opeartions
             throw new IOException("Failed to compact swap file!", ex);
         }
 
         this.swapFileChannel.close();
 
+        // replace swap file
         final Path target = new File(this.swapFilePath + ".tmp").toPath();
-
         try {
             Files.move(
                     target,
@@ -408,12 +415,20 @@ public class BufferedLinearRegionFile implements IRegionFile {
                 // reopen closed channel
                 this.reopenSwapFileChannel();
                 // fast-fail
+                this.markClosed(); // prevent new writing & sync opeartions
                 throw new IOException("Failed to replace original swap file!", e);
             }
         }
 
-        this.sectors = newSectorsToBeReplaced;
+
+        // reopen file channel
         this.reopenSwapFileChannel();
+
+        // replace with recalculated file headers
+        this.sectors = newSectorsToBeReplaced;
+        this.currentAcquiredIndex = newAcquiredIndex;
+
+        // flush to file
         this.writeSwapFileHeaders(true, true);
     }
 
@@ -672,23 +687,26 @@ public class BufferedLinearRegionFile implements IRegionFile {
     // here we use this tool to prevent the swap file goes too large
     // sometimes when a region contains all chunks, it might be very huge without any compressions(around 100MiB)
     private static class CompressingOps {
-        private final LZ4CompressorWithLength lz4Compressor = new LZ4CompressorWithLength(LZ4Factory.fastestInstance().fastCompressor());
-        private final LZ4DecompressorWithLength lz4Decompressor = new LZ4DecompressorWithLength(LZ4Factory.fastestInstance().fastDecompressor());
+        private final LZ4Compressor lz4Compressor = LZ4Factory.fastestInstance().fastCompressor();
+        private final LZ4FastDecompressor lz4Decompressor = LZ4Factory.fastestInstance().fastDecompressor();
 
         public @NotNull ByteBuffer commitSectionData(@NotNull ByteBuffer in) {
             final int bufferLenToAllocate = this.lz4Compressor.maxCompressedLength(in.remaining());
-            final ByteBuffer result = ByteBuffer.allocate(bufferLenToAllocate);
+            final ByteBuffer result = ByteBuffer.allocate(bufferLenToAllocate + 4);
 
+            result.putInt(in.remaining());
             this.lz4Compressor.compress(in, result);
 
             return result.flip();
         }
 
-        public @NotNull ByteBuffer fromCommitedSection(@NotNull ByteBuffer flippedIn) throws IOException {
+        public @NotNull ByteBuffer fromCommitedSection(@NotNull ByteBuffer flippedIn) {
+            final int originalLen = flippedIn.getInt();
             final byte[] raw = new byte[flippedIn.remaining()];
             flippedIn.get(raw);
 
-            final byte[] decompressed = this.lz4Decompressor.decompress(raw);
+            final byte[] decompressed = new byte[originalLen];
+            this.lz4Decompressor.decompress(raw, decompressed);
 
             return ByteBuffer.wrap(decompressed);
         }
@@ -719,9 +737,17 @@ public class BufferedLinearRegionFile implements IRegionFile {
         public @NotNull ByteBuffer read(@NotNull FileChannel channel) throws IOException {
             final ByteBuffer result = ByteBuffer.allocate((int) this.length);
 
-            channel.read(result, this.offset);
-            result.flip();
+            int totalRead = 0;
+            while (totalRead < this.length) {
+                int read = channel.read(result, this.offset + totalRead);
+                if (read == -1) {
+                    throw new IOException("Unexpected EOF while reading sector " + this.index +
+                            ", expected " + this.length + " bytes, got " + totalRead);
+                }
+                totalRead += read;
+            }
 
+            result.flip();
             return result;
         }
 
@@ -966,7 +992,9 @@ public class BufferedLinearRegionFile implements IRegionFile {
                         continue;
                     }
 
-                    final byte[] buffer = chunkData.array();
+                    final byte[] buffer = new byte[chunkData.remaining()];
+                    chunkData.get(buffer);
+
                     // store
                     zstdDataStreamHelper.writeInt(buffer.length); // len
                     zstdDataStreamHelper.write(buffer); // data
