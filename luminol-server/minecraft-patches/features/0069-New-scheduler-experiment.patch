@@ -223,7 +223,7 @@ index 25a0b1d56652e4455a188d0f413581638d5ef538..9c03bd36f02566d4c2ba8e298458cadf
                      return true;
                  }
 diff --git a/io/papermc/paper/threadedregions/RegionizedWorldData.java b/io/papermc/paper/threadedregions/RegionizedWorldData.java
-index ab5a181d0cc7e65a4a10381cbf8ddf011ceb2ba7..271ef7c6ea710360ece9f046dcfb42eb6e91bfac 100644
+index 3318df90f90b6fd831d0a96450e54ae426865ab1..52c1ecd4e475a7004d0fd8eb963fa3db1dd2d226 100644
 --- a/io/papermc/paper/threadedregions/RegionizedWorldData.java
 +++ b/io/papermc/paper/threadedregions/RegionizedWorldData.java
 @@ -7,6 +7,7 @@ import ca.spottedleaf.moonrise.common.util.CoordinateUtils;
@@ -250,7 +250,7 @@ index ab5a181d0cc7e65a4a10381cbf8ddf011ceb2ba7..271ef7c6ea710360ece9f046dcfb42eb
                  into.nearbyPlayers.addPlayer(player);
              }
              for (final Entity entity : from.allEntities) {
-@@ -239,6 +242,7 @@ public final class RegionizedWorldData {
+@@ -255,6 +258,7 @@ public final class RegionizedWorldData {
                  // the chunk holder must _exist_, and so the region section exists.
                  final RegionizedWorldData into = regionToData.get(CoordinateUtils.getChunkKey(pos.x >> chunkToRegionShift, pos.z >> chunkToRegionShift));
                  into.localPlayers.add(player);
@@ -258,7 +258,7 @@ index ab5a181d0cc7e65a4a10381cbf8ddf011ceb2ba7..271ef7c6ea710360ece9f046dcfb42eb
                  into.nearbyPlayers.addPlayer(player);
              }
              for (final Entity entity : from.allEntities) {
-@@ -428,7 +432,8 @@ public final class RegionizedWorldData {
+@@ -444,7 +448,8 @@ public final class RegionizedWorldData {
      }
  
      // entities
@@ -268,7 +268,7 @@ index ab5a181d0cc7e65a4a10381cbf8ddf011ceb2ba7..271ef7c6ea710360ece9f046dcfb42eb
      private final NearbyPlayers nearbyPlayers;
      public final io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList entitySchedulerTickList = new io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList();
      private final ReferenceList<Entity> allEntities = new ReferenceList<>(EMPTY_ENTITY_ARRAY);
-@@ -533,7 +538,9 @@ public final class RegionizedWorldData {
+@@ -549,7 +554,9 @@ public final class RegionizedWorldData {
      public final Map<Long, ChunkSectionItemEntityMovementTracker> itemEntityMovementTrackerMap = new it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap<>();
      // Luminol end
  
@@ -279,7 +279,7 @@ index ab5a181d0cc7e65a4a10381cbf8ddf011ceb2ba7..271ef7c6ea710360ece9f046dcfb42eb
          this.world = world;
          this.blockLevelTicks = new LevelTicks<>(world::isPositionTickingWithEntitiesLoaded, world, true);
          this.fluidLevelTicks = new LevelTicks<>(world::isPositionTickingWithEntitiesLoaded, world, false);
-@@ -541,6 +548,7 @@ public final class RegionizedWorldData {
+@@ -557,6 +564,7 @@ public final class RegionizedWorldData {
          this.nearbyPlayers = new NearbyPlayers(world);
          this.wireHandler = new alternate.current.wire.WireHandler(world);
          this.turbo = new io.papermc.paper.redstone.RedstoneWireTurbo((RedStoneWireBlock)Blocks.REDSTONE_WIRE);
@@ -287,7 +287,7 @@ index ab5a181d0cc7e65a4a10381cbf8ddf011ceb2ba7..271ef7c6ea710360ece9f046dcfb42eb
  
          // tasks may be drained before the region ticks, so we must set up the tick data early just in case
          this.updateTickData();
-@@ -698,6 +706,7 @@ public final class RegionizedWorldData {
+@@ -714,6 +722,7 @@ public final class RegionizedWorldData {
          if (this.allEntities.add(entity)) {
              if (entity instanceof ServerPlayer player) {
                  this.localPlayers.add(player);
@@ -295,7 +295,7 @@ index ab5a181d0cc7e65a4a10381cbf8ddf011ceb2ba7..271ef7c6ea710360ece9f046dcfb42eb
              }
              TickRegions.RegionStats.updateCurrentRegion();
          }
-@@ -714,6 +723,7 @@ public final class RegionizedWorldData {
+@@ -730,6 +739,7 @@ public final class RegionizedWorldData {
          if (this.allEntities.remove(entity)) {
              if (entity instanceof ServerPlayer player) {
                  this.localPlayers.remove(player);
