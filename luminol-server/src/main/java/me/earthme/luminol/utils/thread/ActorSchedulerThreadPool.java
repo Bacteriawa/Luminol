@@ -1,6 +1,5 @@
 package me.earthme.luminol.utils.thread;
 
-import ca.spottedleaf.concurrentutil.collection.MultiThreadedQueue;
 import ca.spottedleaf.concurrentutil.util.ConcurrentUtil;
 import ca.spottedleaf.concurrentutil.util.TimeUtil;
 import me.earthme.luminol.utils.Pair;
@@ -10,6 +9,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.invoke.VarHandle;
 import java.util.Comparator;
+import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,10 +29,15 @@ import java.util.function.Consumer;
  * @code ca.spottedleaf.concurrentutil.scheduler.SchedulerThreadPool
  */
 public class ActorSchedulerThreadPool {
+    private static final Comparator<SchedulerWorkerCarrier> WORKER_COMPARATOR_BY_TIME = (t1, t2) -> {
+        int timeCompare = TimeUtil.compareTimes(t1.cachedTaskCount.get(), t2.cachedTaskCount.get());
+        return timeCompare != 0 ? timeCompare : Long.compare(t1.runner.threadId(), t2.runner.threadId());
+    };
     public static final long DEADLINE_NOT_SET = Long.MIN_VALUE;
 
     private final ThreadFactory threadFactory;
     private final CopyOnWriteArrayList<SchedulerWorkerCarrier> workers = new CopyOnWriteArrayList<>();
+    private final ConcurrentSkipListMap<SchedulerWorkerCarrier,SchedulerWorkerCarrier> idleWorkers = new ConcurrentSkipListMap<>(WORKER_COMPARATOR_BY_TIME);
     // used for task stats notification
     private final ConcurrentHashMap<SchedulableTick, WorkerTaskNode> taskBandings = new ConcurrentHashMap<>();
     private final Thread.UncaughtExceptionHandler exceptionHandler;
@@ -43,8 +49,8 @@ public class ActorSchedulerThreadPool {
             TimeUnit.MILLISECONDS.toNanos(2), // 2ms
             TimeUnit.MILLISECONDS.toNanos(4), // 4ms
             // tick deadline offset control
-            TimeUnit.MILLISECONDS.toNanos(4), // 4ms
-            TimeUnit.MILLISECONDS.toNanos(6) // 4ms
+            TimeUnit.MILLISECONDS.toNanos(1), // 4ms
+            TimeUnit.MILLISECONDS.toNanos(2) // 4ms
     );
 
     public ActorSchedulerThreadPool(int nThreads, ThreadFactory threadFactory, Thread.UncaughtExceptionHandler exceptionHandler) {
@@ -174,22 +180,10 @@ public class ActorSchedulerThreadPool {
     }
 
     private @Nullable ActorSchedulerThreadPool.SchedulerWorkerCarrier selectWorker() {
-        // Check for workers with the lowest load (fewest tasks)
-        SchedulerWorkerCarrier bestWorker = null;
-        int minTaskCount = Integer.MAX_VALUE;
-        
-        for (SchedulerWorkerCarrier w : this.workers) {
-            if (w.status.get() != SchedulerWorkerCarrier.STATUS_SHUTDOWN) {
-                int taskCount = w.inComingTaskMessages.size();
-                if (taskCount < minTaskCount) {
-                    minTaskCount = taskCount;
-                    bestWorker = w;
-                }
-            }
-        }
-        
-        if (bestWorker != null) {
-            return bestWorker;
+        // idle first
+        Map.Entry<SchedulerWorkerCarrier, SchedulerWorkerCarrier> idleFirst = this.idleWorkers.pollFirstEntry();
+        if (idleFirst != null) {
+            return idleFirst.getKey();
         }
 
         // idle first and load low first failed, chose one randomly
@@ -323,10 +317,14 @@ public class ActorSchedulerThreadPool {
     }
 
     private final class InternalMessage {
+        private static final AtomicLong ID_GENERATOR = new AtomicLong();
+
         private final Consumer<WorkerTaskNode> action;
         @Nullable
         private final ActorSchedulerThreadPool.WorkerTaskNode insideTask;
         private final Runnable ifFinalized;
+        private final long createdAt = System.nanoTime();
+        private final long id = ID_GENERATOR.getAndIncrement();
 
         private InternalMessage(
                 Consumer<WorkerTaskNode> action,
@@ -358,8 +356,15 @@ public class ActorSchedulerThreadPool {
     }
 
     private final class WorkerTaskNode {
+        private static final Comparator<InternalMessage> INTERNAL_MESSAGE_COMPARATOR_BY_TIME = (t1, t2) -> {
+            int timeCompare = TimeUtil.compareTimes(t1.createdAt, t2.createdAt);
+            return timeCompare != 0 ? timeCompare : Long.compare(t1.id, t2.id);
+        };
+
         private final SchedulableTick internal;
-        private final MultiThreadedQueue<InternalMessage> subMessageNodes = new MultiThreadedQueue<>();
+        private final Object subMessageNodesLock = new Object();
+        private boolean subMessageBlocked = false;
+        private final PriorityQueue<InternalMessage> subMessageNodes = new PriorityQueue<>(INTERNAL_MESSAGE_COMPARATOR_BY_TIME);
 
         private long tickTimeDeadlineBuffer = ActorSchedulerThreadPool.this.schedulerConfig.maxTickTimeWaitBuffer;
         private long mainThreadTaskPeriod = ActorSchedulerThreadPool.this.schedulerConfig.maxTaskDeadlineBuffer;
@@ -420,7 +425,13 @@ public class ActorSchedulerThreadPool {
         }
 
         public boolean sendMessage(InternalMessage internalMessage) {
-            return this.subMessageNodes.offer(internalMessage);
+            synchronized (this.subMessageNodesLock) {
+                if (this.subMessageBlocked) {
+                    return false;
+                }
+
+                return this.subMessageNodes.add(internalMessage);
+            }
         }
 
         public void doMessageProcess() {
@@ -438,6 +449,11 @@ public class ActorSchedulerThreadPool {
 
                 // run tasks once if buffer(tick + task) is enough for extra task execution, or we will do task run during the wait stage
                 if (this.internal.hasTasks() && (remaining + this.tickTimeDeadlineBuffer) < 0) {
+                    final SchedulerWorkerCarrier owner = this.getOwnerWorker();
+                    if (owner != null) {
+                        ActorSchedulerThreadPool.this.idleWorkers.put(owner, owner);
+                    }
+
                     canceled = !this.internal.runTasks(() -> {
                         this.processSubMessageNode();
 
@@ -464,6 +480,15 @@ public class ActorSchedulerThreadPool {
                     return;
                 }
 
+                final SchedulerWorkerCarrier owner = this.getOwnerWorker();
+                if (owner != null) {
+                    ActorSchedulerThreadPool.this.idleWorkers.remove(owner);
+                }
+
+                // here we try into a wait state for the tick,
+                // anyway these wait won't make too much influence on the precision of time due to that there will surely be a
+                // thread could process the task migration immediately,
+                // otherwise, the threads has allocated are all full-loaded
                 int taskExecutionFailure = 0;
                 for (;;) {
                     this.processSubMessageNode();
@@ -476,6 +501,11 @@ public class ActorSchedulerThreadPool {
                     }
 
                     if (remaining < 0) {
+                        final SchedulerWorkerCarrier currOwner = this.getOwnerWorker();
+                        if (currOwner != null) {
+                            ActorSchedulerThreadPool.this.idleWorkers.put(currOwner, currOwner);
+                        }
+
                         if (this.internal.hasTasks()) {
                             // we would gonna process more tasks during waiting
                             canceled = !this.internal.runTasks(() -> {
@@ -499,6 +529,11 @@ public class ActorSchedulerThreadPool {
                         Thread.yield();
                         LockSupport.parkNanos("AWAIT DEADLINE", Math.min(10, taskExecutionFailure) * 1000L);
                         continue;
+                    }
+
+                    final SchedulerWorkerCarrier currOwner = this.getOwnerWorker();
+                    if (currOwner != null) {
+                        ActorSchedulerThreadPool.this.idleWorkers.remove(currOwner);
                     }
 
                     final long currTime = System.nanoTime();
@@ -542,17 +577,18 @@ public class ActorSchedulerThreadPool {
         }
 
         private void processSubMessageNode() {
-            final InternalMessage internalMessage = this.subMessageNodes.poll();
+            InternalMessage internalMessage = null;
 
             // might have an interrupt message incoming
-            if (internalMessage != null) {
+            while ((internalMessage = this.pollInternalMessage(false)) != null) {
                 internalMessage.process();
+
             }
         }
 
         public void finalizeSubMsgBelongToSelf(boolean canceled) {
             InternalMessage internalMessage;
-            while ((internalMessage = canceled ? this.subMessageNodes.pollOrBlockAdds() : this.subMessageNodes.poll()) != null) {
+            while ((internalMessage = this.pollInternalMessage(canceled)) != null) {
                 try {
                     internalMessage.doFinalized();
                 }catch (Exception ex) {
@@ -563,18 +599,26 @@ public class ActorSchedulerThreadPool {
             }
         }
 
+        private InternalMessage pollInternalMessage(boolean blockAdd) {
+            synchronized (this.subMessageNodesLock) {
+                this.subMessageBlocked = blockAdd;
+
+                return this.subMessageNodes.poll();
+            }
+        }
+
         public void onCancelled() {
             this.finalizeSubMsgBelongToSelf(true);
         }
     }
 
     // use this to implement the "pollOrBlockAdd function like MultiThreadedQueue"
-    private static final class WorkerQueueConditioner {
+    private static final class QueueConditioner {
         private int referenceCount = 0;
         private boolean addBlocked = false;
 
-        private static final VarHandle REFERENCE_COUNT_HANDLE = ConcurrentUtil.getVarHandle(WorkerQueueConditioner.class, "referenceCount", int.class);
-        private static final VarHandle BLOCK_ADD_HANDLE = ConcurrentUtil.getVarHandle(WorkerQueueConditioner.class, "addBlocked", boolean.class);
+        private static final VarHandle REFERENCE_COUNT_HANDLE = ConcurrentUtil.getVarHandle(QueueConditioner.class, "referenceCount", int.class);
+        private static final VarHandle BLOCK_ADD_HANDLE = ConcurrentUtil.getVarHandle(QueueConditioner.class, "addBlocked", boolean.class);
         
         private boolean isAddBlocked() {
             return (boolean) BLOCK_ADD_HANDLE.getVolatile(this);
@@ -678,7 +722,8 @@ public class ActorSchedulerThreadPool {
 
         private final Thread runner;
         private final ConcurrentSkipListSet<WorkerTaskNode> inComingTaskMessages = new ConcurrentSkipListSet<>(TICK_COMPARATOR_BY_TIME);
-        private final WorkerQueueConditioner queueConditioner = new WorkerQueueConditioner();
+        private final AtomicInteger cachedTaskCount = new AtomicInteger();
+        private final QueueConditioner queueConditioner = new QueueConditioner();
 
         private final AtomicBoolean killSignal = new AtomicBoolean(false);
         private final AtomicInteger status = new AtomicInteger(0);
@@ -757,7 +802,11 @@ public class ActorSchedulerThreadPool {
                         // it is in our queue now
                         incomingMessage.setWorker(this);
 
+                        this.cachedTaskCount.getAndIncrement();
                         this.inComingTaskMessages.add(incomingMessage);
+
+                        // update idle workers
+                        ActorSchedulerThreadPool.this.idleWorkers.put(other, other);
 
                         // we need to prevent the task got stolen twice
                         this.status.set(STATUS_TASK_GOT_FROM_STEAL);
@@ -770,8 +819,10 @@ public class ActorSchedulerThreadPool {
                 executeFailureCount++;
 
                 // sleep 1 - 100us based on load
-                long parkNanos = Math.min(Math.max(executeFailureCount * 1000L, 1000L), 500_000L);
-                
+                long parkNanos = Math.min(Math.max(executeFailureCount * 1000L, 1000L), 1000_000L);
+
+
+                ActorSchedulerThreadPool.this.idleWorkers.put(this, this);
                 LockSupport.parkNanos("IDLE", parkNanos);
             }
 
@@ -797,6 +848,7 @@ public class ActorSchedulerThreadPool {
                 this.queueConditioner.releaseWriteReference();
             }
 
+            this.cachedTaskCount.getAndDecrement();
             return this.inComingTaskMessages.pollFirst();
         }
 
@@ -807,6 +859,8 @@ public class ActorSchedulerThreadPool {
         }
 
         private WorkerTaskNode steal() {
+            this.cachedTaskCount.getAndDecrement();
+
             return this.inComingTaskMessages.pollFirst();
         }
 
@@ -820,6 +874,8 @@ public class ActorSchedulerThreadPool {
             this.queueConditioner.acquireReadReference();
 
             if (!this.queueConditioner.isAddBlocked()) {
+                this.cachedTaskCount.getAndIncrement();
+
                 queued = this.inComingTaskMessages.add(messageNode);
             }
 
@@ -837,6 +893,11 @@ public class ActorSchedulerThreadPool {
         }
 
         private SchedulerWorkerCarrier randomSelect() {
+            final Map.Entry<SchedulerWorkerCarrier, SchedulerWorkerCarrier> first = ActorSchedulerThreadPool.this.idleWorkers.lastEntry();
+            if (first != null) {
+                return first.getKey();
+            }
+
             final SchedulerWorkerCarrier[] allSchedulers = ActorSchedulerThreadPool.this.workers.toArray(new SchedulerWorkerCarrier[0]);
             final ThreadLocalRandom random = ThreadLocalRandom.current();
 
