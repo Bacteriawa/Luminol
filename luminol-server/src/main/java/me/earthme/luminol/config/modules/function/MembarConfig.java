@@ -4,15 +4,17 @@ import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.mojang.logging.LogUtils;
 import me.earthme.luminol.config.IConfigModule;
 import me.earthme.luminol.config.flags.*;
+import me.earthme.luminol.enums.EnumBarType;
 import me.earthme.luminol.enums.EnumConfigCategory;
 import me.earthme.luminol.enums.EnumStatusBarDisplay;
-import me.earthme.luminol.functions.GlobalServerBarManager;
-import me.earthme.luminol.functions.GlobalServerMemoryBar;
+import me.earthme.luminol.functions.bars.GlobalServerBarManager;
+import me.earthme.luminol.functions.bars.GlobalServerMemoryBar;
 import org.bukkit.Bukkit;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
-import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 @ConfigClassInfo(category = EnumConfigCategory.FUNCTION, name = "membar")
 public class MembarConfig implements IConfigModule {
@@ -33,24 +35,14 @@ public class MembarConfig implements IConfigModule {
     @TransformedConfig(name = "display", directory = {"misc", "membar"})
     @CommandSuggestions(suggest = {"BOSS_BAR", "ACTION_BAR", "TAB_LIST"})
     @ConfigInfo(name = "display")
-    public static String displayString = "BOSS_BAR";
-
-    @DoNotLoad
     public static EnumStatusBarDisplay display = EnumStatusBarDisplay.BOSS_BAR;
 
     @DoNotLoad
     private static boolean inited = false;
 
     @Override
-    public void onLoaded(CommentedFileConfig configInstance) {
-        if (Arrays.stream(EnumStatusBarDisplay.values()).map(Enum::name).noneMatch(s -> s.equals(displayString))) {
-            logger.warn("Could not found display : {} ! Falling back to default", displayString);
-            display = EnumStatusBarDisplay.BOSS_BAR;
-        } else {
-            display = EnumStatusBarDisplay.valueOf(displayString);
-        }
-
-        GlobalServerMemoryBar membar = GlobalServerBarManager.get("memory");
+    public void onLoaded(CommentedFileConfig configInstance, @Nullable Set<Exception> e) {
+        GlobalServerMemoryBar membar = GlobalServerBarManager.get(EnumBarType.MEMORY);
         if (memoryBarEnabled) {
             membar.init();
         } else {
@@ -64,7 +56,7 @@ public class MembarConfig implements IConfigModule {
 
     @Override
     public void onUnloaded(CommentedFileConfig configInstance) {
-        GlobalServerMemoryBar membar = GlobalServerBarManager.get("memory");
+        GlobalServerMemoryBar membar = GlobalServerBarManager.get(EnumBarType.MEMORY);
         membar.cancelBarUpdateTask();
         membar.runUnloadTask();
         Bukkit.getCommandMap().getKnownCommands().remove("luminol:membar");

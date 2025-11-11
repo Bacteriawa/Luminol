@@ -15,7 +15,6 @@ import org.jetbrains.annotations.NotNull;
 import org.leavesmc.leaves.command.ArgumentNode;
 import org.leavesmc.leaves.command.CommandContext;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import static org.leavesmc.leaves.command.CommandUtils.getListClosestMatchingLast;
@@ -56,11 +55,10 @@ public class OpenGuiCommand extends ConfigSubcommand {
             String path = context.getArgumentOrDefault(PathArgument.class, "");
             int dotIndex = path.lastIndexOf(".");
             builder = builder.createOffset(builder.getInput().lastIndexOf(' ') + dotIndex + 2);
-            List<String> list = parent.config.completeConfigPath(path);
-            list.add("full");
+            if (dotIndex == -1) builder.suggest("full");
             for (String s : getListClosestMatchingLast(
                     path.substring(dotIndex + 1),
-                    list
+                    parent.config.completeConfigPath(path)
             )) {
                 builder.suggest(s.substring(path.lastIndexOf('.') + 1));
             }
