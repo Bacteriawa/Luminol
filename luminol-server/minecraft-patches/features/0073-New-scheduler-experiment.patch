@@ -223,7 +223,7 @@ index 25a0b1d56652e4455a188d0f413581638d5ef538..9c03bd36f02566d4c2ba8e298458cadf
                      return true;
                  }
 diff --git a/io/papermc/paper/threadedregions/RegionizedWorldData.java b/io/papermc/paper/threadedregions/RegionizedWorldData.java
-index 158c1f5d965bc5951db56c6b1ad99f0d8ea71571..c6ecb4513885fae0e90cdea7ac6d84db2abd0c1a 100644
+index d0de3b22f6cef6eb213b7ff688a514a67f84fbcf..be3dc42a66a04ffacb022deaab92ae7428a733b6 100644
 --- a/io/papermc/paper/threadedregions/RegionizedWorldData.java
 +++ b/io/papermc/paper/threadedregions/RegionizedWorldData.java
 @@ -7,6 +7,7 @@ import ca.spottedleaf.moonrise.common.util.CoordinateUtils;
@@ -242,7 +242,7 @@ index 158c1f5d965bc5951db56c6b1ad99f0d8ea71571..c6ecb4513885fae0e90cdea7ac6d84db
  import java.util.function.Consumer;
  import java.util.function.Predicate;
  // Luminol start - imports for lithium sleeping block entity
-@@ -109,6 +111,7 @@ public final class RegionizedWorldData {
+@@ -112,6 +114,7 @@ public final class RegionizedWorldData {
              // entities
              for (final ServerPlayer player : from.localPlayers) {
                  into.localPlayers.add(player);
@@ -250,7 +250,7 @@ index 158c1f5d965bc5951db56c6b1ad99f0d8ea71571..c6ecb4513885fae0e90cdea7ac6d84db
                  into.nearbyPlayers.addPlayer(player);
              }
              for (final Entity entity : from.allEntities) {
-@@ -255,6 +258,7 @@ public final class RegionizedWorldData {
+@@ -246,6 +249,7 @@ public final class RegionizedWorldData {
                  // the chunk holder must _exist_, and so the region section exists.
                  final RegionizedWorldData into = regionToData.get(CoordinateUtils.getChunkKey(pos.x >> chunkToRegionShift, pos.z >> chunkToRegionShift));
                  into.localPlayers.add(player);
@@ -258,7 +258,7 @@ index 158c1f5d965bc5951db56c6b1ad99f0d8ea71571..c6ecb4513885fae0e90cdea7ac6d84db
                  into.nearbyPlayers.addPlayer(player);
              }
              for (final Entity entity : from.allEntities) {
-@@ -436,7 +440,8 @@ public final class RegionizedWorldData {
+@@ -415,7 +419,8 @@ public final class RegionizedWorldData {
      }
  
      // entities
@@ -268,8 +268,8 @@ index 158c1f5d965bc5951db56c6b1ad99f0d8ea71571..c6ecb4513885fae0e90cdea7ac6d84db
      private final NearbyPlayers nearbyPlayers;
      public final io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList entitySchedulerTickList = new io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList();
      private final ReferenceList<Entity> allEntities = new ReferenceList<>(EMPTY_ENTITY_ARRAY);
-@@ -544,7 +549,9 @@ public final class RegionizedWorldData {
-     public boolean instantPOIUpdating = false;
+@@ -520,7 +525,9 @@ public final class RegionizedWorldData {
+     public final Map<Long, ChunkSectionItemEntityMovementTracker> itemEntityMovementTrackerMap = new it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap<>();
      // Luminol end
  
 -    public RegionizedWorldData(final ServerLevel world) {
@@ -279,7 +279,7 @@ index 158c1f5d965bc5951db56c6b1ad99f0d8ea71571..c6ecb4513885fae0e90cdea7ac6d84db
          this.world = world;
          this.blockLevelTicks = new LevelTicks<>(world::isPositionTickingWithEntitiesLoaded, world, true);
          this.fluidLevelTicks = new LevelTicks<>(world::isPositionTickingWithEntitiesLoaded, world, false);
-@@ -552,6 +559,7 @@ public final class RegionizedWorldData {
+@@ -528,6 +535,7 @@ public final class RegionizedWorldData {
          this.nearbyPlayers = new NearbyPlayers(world);
          this.wireHandler = new alternate.current.wire.WireHandler(world);
          this.turbo = new io.papermc.paper.redstone.RedstoneWireTurbo((RedStoneWireBlock)Blocks.REDSTONE_WIRE);
@@ -287,7 +287,7 @@ index 158c1f5d965bc5951db56c6b1ad99f0d8ea71571..c6ecb4513885fae0e90cdea7ac6d84db
  
          // tasks may be drained before the region ticks, so we must set up the tick data early just in case
          this.updateTickData();
-@@ -709,6 +717,7 @@ public final class RegionizedWorldData {
+@@ -685,6 +693,7 @@ public final class RegionizedWorldData {
          if (this.allEntities.add(entity)) {
              if (entity instanceof ServerPlayer player) {
                  this.localPlayers.add(player);
@@ -295,7 +295,7 @@ index 158c1f5d965bc5951db56c6b1ad99f0d8ea71571..c6ecb4513885fae0e90cdea7ac6d84db
              }
              TickRegions.RegionStats.updateCurrentRegion();
          }
-@@ -725,6 +734,7 @@ public final class RegionizedWorldData {
+@@ -701,6 +710,7 @@ public final class RegionizedWorldData {
          if (this.allEntities.remove(entity)) {
              if (entity instanceof ServerPlayer player) {
                  this.localPlayers.remove(player);
@@ -877,10 +877,10 @@ index 4ef2816210f06082f2209c51d04aad6bb188232b..d4f16779583916854352467aac16210c
          this.players.remove(player);
          this.playersByName.remove(player.getScoreboardName().toLowerCase(java.util.Locale.ROOT)); // Spigot
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 3a46cb424c8ea26386ed013cfc13aba36852a402..86ed3feea415c2cad475a7c1ebea297a52765130 100644
+index 4eb08dc3b3d7ed8716d7e37313512c8bc5e4e393..99a877dc4fc770fb72f51617cccb345227353b93 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -808,7 +808,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+@@ -809,7 +809,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
      // Folia start - region ticking
      public final io.papermc.paper.threadedregions.RegionizedData<io.papermc.paper.threadedregions.RegionizedWorldData> worldRegionData
          = new io.papermc.paper.threadedregions.RegionizedData<>(
