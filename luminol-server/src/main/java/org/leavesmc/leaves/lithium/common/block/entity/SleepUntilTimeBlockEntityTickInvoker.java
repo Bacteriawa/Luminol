@@ -23,13 +23,22 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.TickingBlockEntity;
 import org.jetbrains.annotations.NotNull;
 
-public record SleepUntilTimeBlockEntityTickInvoker(BlockEntity sleepingBlockEntity, long sleepUntilTickExclusive,
-                                                   TickingBlockEntity delegate) implements TickingBlockEntity {
+public class SleepUntilTimeBlockEntityTickInvoker implements TickingBlockEntity {
+
+    private final BlockEntity sleepingBlockEntity;
+    private long sleepUntilTickExclusive;
+    private final TickingBlockEntity delegate;
+
+    public SleepUntilTimeBlockEntityTickInvoker(BlockEntity sleepingBlockEntity, long sleepUntilTickExclusive, TickingBlockEntity delegate) {
+        this.sleepingBlockEntity = sleepingBlockEntity;
+        this.sleepUntilTickExclusive = sleepUntilTickExclusive;
+        this.delegate = delegate;
+    }
 
     @Override
     public void tick() {
         //noinspection ConstantConditions
-        long tickTime = this.sleepingBlockEntity.getLevel().getRedstoneGameTime();
+        long tickTime = this.sleepingBlockEntity.getLevel().getRedstoneGameTime(); // Luminol - Regionized threading for sleeping block entity
         if (tickTime >= this.sleepUntilTickExclusive) {
             ((SleepingBlockEntity) this.sleepingBlockEntity).setTicker(this.delegate);
             this.delegate.tick();
@@ -42,19 +51,26 @@ public record SleepUntilTimeBlockEntityTickInvoker(BlockEntity sleepingBlockEnti
     }
 
     @Override
+    @NotNull
     public BlockPos getPos() {
         return this.sleepingBlockEntity.getBlockPos();
     }
 
     @Override
+    @NotNull
     public String getType() {
         //noinspection ConstantConditions
         return BlockEntityType.getKey(this.sleepingBlockEntity.getType()).toString();
     }
 
-    @NotNull
     @Override
+    @NotNull
     public BlockEntity getTileEntity() {
-        return this.delegate.getTileEntity();
+        return this.sleepingBlockEntity;
+    }
+
+    @Override
+    public void updateTicksForLithium(long redstoneGameTimeOffset) {
+        this.sleepUntilTickExclusive += redstoneGameTimeOffset;
     }
 }
