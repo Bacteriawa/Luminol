@@ -1,4 +1,4 @@
-package me.earthme.luminol.utils;
+package me.earthme.luminol.utils.dialog;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class CommandDialog {
+public class ConfigCommandDialog {
     public static void openGui(Player player, String name, ConfigsInstance config) {
         openGui(player, name, config, "");
     }
@@ -28,11 +28,10 @@ public class CommandDialog {
     public static void openGui(Player player, String name, ConfigsInstance config, String prefix) {
         if (prefix.equals("full")) {
             player.openDialog(
-                    DialogUtil.createHolder(
+                    ConfigDialogUtil.createHolder(
                             name + "config",
-                            config.getAllDataWithComment(),
-                            name + "config submit ",
-                            config.SPLIT
+                            config.getAllDataFull(),
+                            name + "config submit "
                     ));
             return;
         }
@@ -63,10 +62,9 @@ public class CommandDialog {
             }
         }
 
-        DialogUtil.addInputs(
-                config.getDataWithComment(keySingleConfigs),
+        ConfigDialogUtil.addInputs(
+                config.getFullData(keySingleConfigs),
                 name + "config submit ",
-                config.SPLIT,
                 builder
         );
 
@@ -80,6 +78,15 @@ public class CommandDialog {
                             Component.translatable("Show all configs"),
                             300,
                             Optional.of(commandTemplate)
+                    ));
+        }
+
+        if (builder.getInputCount() == 0) {
+            builder.addButton(
+                    DialogUtil.createButton(
+                            Component.translatable("Close"),
+                            300,
+                            Optional.empty()
                     ));
         }
 
