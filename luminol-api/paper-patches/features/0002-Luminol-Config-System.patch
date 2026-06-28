@@ -5,10 +5,10 @@ Subject: [PATCH] Luminol Config System
 
 
 diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
-index 23901bb9e01a90dc5f12e458b7188d51e91022b4..8f4136b2d63fdfb35bffbbee99fe961d18a38027 100644
+index fb5ca3ab0ddba433a39e65572beeb955b50d6f72..42335e351e0cb4f82f46501503a15349f8a82e1b 100644
 --- a/src/main/java/org/bukkit/Server.java
 +++ b/src/main/java/org/bukkit/Server.java
-@@ -2780,6 +2780,11 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
+@@ -2776,6 +2776,11 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
       */
      void allowPausing(@NotNull org.bukkit.plugin.Plugin plugin, boolean value);
      // Paper end - API to check if the server is sleeping

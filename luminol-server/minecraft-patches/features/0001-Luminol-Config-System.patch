@@ -5,10 +5,10 @@ Subject: [PATCH] Luminol Config System
 
 
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index aa15c5c83f04e518c30a9dee7945062099197c25..143ad4e342b184aa02b6fbbe81508e244eebc7a2 100644
+index a4d608d64b7d3477c9144d93547fd3b4f39a1b02..2a75f8fbd2e5f41ca138740319d34683915e3b5b 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
-@@ -104,6 +104,7 @@ public class Main {
+@@ -107,6 +107,7 @@ public class Main {
                  JvmProfiler.INSTANCE.start(Environment.SERVER);
              }
  
@@ -17,10 +17,10 @@ index aa15c5c83f04e518c30a9dee7945062099197c25..143ad4e342b184aa02b6fbbe81508e24
              Bootstrap.bootStrap();
              Bootstrap.validate();
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 5f89d29eaeeb4c63b8b9e034d440204f518efec2..77fe0b3db3b48899cb1bafdbe177893760a6b9f8 100644
+index cd5551c0221ad2a7b5c7d452d8d91ffc9711c3ee..1ad4704523a3d90414ac514488207b1b5def9afd 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -282,6 +282,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -238,6 +238,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
          this.paperConfigurations.initializeGlobalConfiguration(this.registryAccess());
          this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
          // Paper end - initialize global and world-defaults configuration
