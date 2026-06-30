@@ -5,7 +5,7 @@ Subject: [PATCH] Add config to disable entity tick catchers
 
 
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index b39fbbb2bffa72d348a81b701f383b9b3c005a5b..0e8f15d7eb523f351ae2e24160ad043bf0ddb820 100644
+index fab42aca7168347c4ed70848a8dcfa352fd08083..4852a3fcf490e26cbf0a24b916acec6268cf9054 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -1591,6 +1591,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl

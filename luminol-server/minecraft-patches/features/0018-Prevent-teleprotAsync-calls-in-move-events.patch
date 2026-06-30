@@ -5,7 +5,7 @@ Subject: [PATCH] Prevent teleprotAsync calls in move events
 
 
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 66c29ea5affa28a318bfde8b8c2c503955740d64..1388b3cc176bb4370f9ce654c470066e8bfbf47a 100644
+index 2b9e3eb10dce2b54cd56fb3d0cc2951ee9059dd6..f57ccfcd0a7c78d3ff0b1b8a7cbdb949e6b64e10 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -730,7 +730,9 @@ public class ServerGamePacketListenerImpl

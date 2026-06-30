@@ -171,10 +171,10 @@ index e5304e9d1ea57c01a1147621a42a9b584878f765..af337f77545df94760b12a2b2f5eaf43
  
      @Override
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 1388b3cc176bb4370f9ce654c470066e8bfbf47a..8607bfe4868e46ff77036c3f57d759224702279a 100644
+index f57ccfcd0a7c78d3ff0b1b8a7cbdb949e6b64e10..52d3adc3cff4024e7ce72f3104396002337b5bc0 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -2883,7 +2883,13 @@ public class ServerGamePacketListenerImpl
+@@ -2888,7 +2888,13 @@ public class ServerGamePacketListenerImpl
          } // Folia end - rewrite login process - move connection ownership to global region
          this.waitingForSwitchToConfig = true; // Folia - rewrite login process - fix bad ordering of this field write - moved down
          this.send(ClientboundStartConfigurationPacket.INSTANCE);
@@ -188,7 +188,7 @@ index 1388b3cc176bb4370f9ce654c470066e8bfbf47a..8607bfe4868e46ff77036c3f57d75922
      }
  
      @Override
-@@ -3768,12 +3774,26 @@ public class ServerGamePacketListenerImpl
+@@ -3773,12 +3779,26 @@ public class ServerGamePacketListenerImpl
          }
  
          final ServerConfigurationPacketListenerImpl listener = new ServerConfigurationPacketListenerImpl(this.server, this.connection, this.createCookie(this.player.clientInformation())); // Paper

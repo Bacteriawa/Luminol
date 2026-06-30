@@ -20,7 +20,7 @@ index ecaa296f576c5c90fda89e0406d6552628ef5de3..d2e9d46bbd9ee4ce45419b11499d7a7b
                  synchronized (PACKET_LIMIT_LOCK) {
                      if (this.allPacketCounts != null) {
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index a5f8cbd671d2be3031b4ad108dab2dc4a520c376..320704f60d47bc5eabbb6ba85ac8eeb80c0a19fb 100644
+index d02a08bca8cf56bf297e2d1b3aa5d47115f26c7e..800f78f4f7a3103a533ae7fce033cbffbc975c69 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -879,7 +879,7 @@ public class ServerGamePacketListenerImpl
@@ -32,7 +32,7 @@ index a5f8cbd671d2be3031b4ad108dab2dc4a520c376..320704f60d47bc5eabbb6ba85ac8eeb8
              this.disconnectAsync(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM); // Paper - Kick event cause // Paper - add proper async disconnect
              return;
          }
-@@ -2110,6 +2110,7 @@ public class ServerGamePacketListenerImpl
+@@ -2115,6 +2115,7 @@ public class ServerGamePacketListenerImpl
      private long lastLimitedPacket = -1;
  
      private boolean checkLimit(long timestamp) {
@@ -40,7 +40,7 @@ index a5f8cbd671d2be3031b4ad108dab2dc4a520c376..320704f60d47bc5eabbb6ba85ac8eeb8
          if (!io.papermc.paper.configuration.GlobalConfiguration.get().spamLimiter.incomingPacketThreshold.enabled()) {
              return true;
          }
-@@ -2676,6 +2677,8 @@ public class ServerGamePacketListenerImpl
+@@ -2681,6 +2682,8 @@ public class ServerGamePacketListenerImpl
  
      // Spigot start - spam exclusions
      private void detectRateSpam(final TickThrottler throttler, final String message) {
@@ -49,7 +49,7 @@ index a5f8cbd671d2be3031b4ad108dab2dc4a520c376..320704f60d47bc5eabbb6ba85ac8eeb8
          if (org.spigotmc.SpigotConfig.enableSpamExclusions) {
              for (String exclude : org.spigotmc.SpigotConfig.spamExclusions) {
                  if (exclude != null && message.startsWith(exclude)) {
-@@ -3474,7 +3477,7 @@ public class ServerGamePacketListenerImpl
+@@ -3479,7 +3482,7 @@ public class ServerGamePacketListenerImpl
      @Override
      public void handlePlaceRecipe(final ServerboundPlaceRecipePacket packet) {
          // Paper start - auto recipe limit

@@ -150,10 +150,10 @@ index de66667ad8630f397b1080ee41d73fa24480f0d7..7c479dea2b33c3a1a4dd72f4d13658ba
                      this.getInventory().equipment.set(value, net.minecraft.world.item.ItemStack.EMPTY);
                  }
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index a8beb61d81347c909c481e9a7883f4531ae11eb9..29eedcda8d5feef5b0033fdb3ee926659b86cee6 100644
+index 643244f004c50847c959e3a85a0b051a1899a3a3..85d490dc7473187c1f63639f7aac70d212b50c3d 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -3009,7 +3009,7 @@ public class ServerGamePacketListenerImpl
+@@ -3014,7 +3014,7 @@ public class ServerGamePacketListenerImpl
                              // SPIGOT-7136 - Allays
                              if (target instanceof net.minecraft.world.entity.animal.allay.Allay || target instanceof net.minecraft.world.entity.animal.equine.AbstractHorse) { // Paper - Fix horse armor desync
                                  ServerGamePacketListenerImpl.this.send(new net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket(
@@ -361,7 +361,7 @@ index ed84782f4fcaec8f12ab68641a42ad6e09079875..4f2017c4ca12dcedb9587e0d3d3c9a6b
              if (predicate.test(item)) {
                  ItemEnchantments enchantments = item.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index ba4cba0f054baba6c86f81b4c2062cc0db8b2c95..fb368e4c09b44744ba634c22934b27ea804ea00e 100644
+index f83b695b2643f4156e5a7620fdc18800b127d719..bfc8e50a9e0d1ec13092cdd4bee0efba94a24da7 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -1966,7 +1966,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl

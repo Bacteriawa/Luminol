@@ -8,7 +8,7 @@ A part of Leaf(https://github.com/Winds-Studio/Leaf/blob/edb0504069139beaa6f39ef
 License: https://github.com/Winds-Studio/Leaf/blob/edb0504069139beaa6f39efa4702370c2576b3fc/LICENSE.md
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 042b9bd811051885125a2778a26b07927735b203..00c42fa41e7f002b078ec4f50154477da872d9eb 100644
+index 6cbca529aa925e56e5d137ab954ac17e7d6c151b..478f896c4fc948a45a463d51c5a78a0a029eb376 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -217,7 +217,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
