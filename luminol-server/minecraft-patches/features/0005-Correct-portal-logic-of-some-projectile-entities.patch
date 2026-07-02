@@ -18,15 +18,41 @@ index d5506bfc84912ec50cd5391225b9b5291435d3aa..6339a770526324bdc1bcc0c0e3bacc0a
  
          if (hitResult != null && this.isAlive() && hitResult.getType() != HitResult.Type.MISS) {
 diff --git a/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java b/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
-index 0b03572b19cf869da7ed1d2ca24e05d7b08a4466..5a27142bc647197542c6c837a6d0eb0d0a85eb95 100644
+index 0b03572b19cf869da7ed1d2ca24e05d7b08a4466..16554f8fa7004060db3df10e5628ee337a1ce640 100644
 --- a/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
 +++ b/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
+@@ -276,7 +276,7 @@ public abstract class AbstractArrow extends Projectile {
+                     .clipIncludingBorder(
+                         new ClipContext(originalPosition, originalPosition.add(movement), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this)
+                     );
+-                this.stepMoveAndHit(blockHitResult);
++                if (this.stepMoveAndHit(blockHitResult)) return; // Luminol - Correct portal logic of some projectile entities (Should not be ticking anymore after portal logics)
+             } else {
+                 this.setPos(originalPosition.add(movement));
+                 this.applyEffectsFromBlocks();
+@@ -299,7 +299,7 @@ public abstract class AbstractArrow extends Projectile {
+         return 0.99F;
+     }
+ 
+-    private void stepMoveAndHit(final BlockHitResult blockHitResult) {
++    private boolean stepMoveAndHit(final BlockHitResult blockHitResult) { // Luminol - Correct portal logic of some projectile entities
+         while (this.isAlive()) {
+             Vec3 initialPosition = this.position();
+             ArrayList<EntityHitResult> entitiesHit = new ArrayList<>(this.findHitEntities(initialPosition, blockHitResult.getLocation()));
 @@ -309,7 +309,7 @@ public abstract class AbstractArrow extends Projectile {
              this.setPos(nextLocation);
              this.applyEffectsFromBlocks(initialPosition, nextLocation);
              if (this.portalProcess != null && this.portalProcess.isInsidePortalThisTick()) {
 -                this.handlePortal();
-+                if (this.handlePortal()) return; // Luminol - Correct portal logic of some projectile entities (Should not be ticking anymore after portal logics)
++                if (this.handlePortal()) return true; // Luminol - Correct portal logic of some projectile entities (Should not be ticking anymore after portal logics)
              }
  
              if (entitiesHit.isEmpty()) {
+@@ -327,6 +327,7 @@ public abstract class AbstractArrow extends Projectile {
+                 break;
+             }
+         }
++        return false; // Luminol - Correct portal logic of some projectile entities
+     }
+ 
+     private ProjectileDeflection hitTargetsOrDeflectSelf(final Collection<EntityHitResult> entityHitResults) {
