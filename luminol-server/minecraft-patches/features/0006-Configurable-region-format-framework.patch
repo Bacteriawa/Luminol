@@ -90,7 +90,7 @@ index b228cd6c54e8c8998923ab332882d99092769c67..95ba9cf20a4c159575b44d233c3f544f
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final String NEW_DIRECTORY_PREFIX = "new_";
 -    private static final Pattern REGEX = Pattern.compile("^r\\.(-?[0-9]+)\\.(-?[0-9]+)\\.mca$");
-+    private static final Pattern REGEX = Pattern.compile("^r\\.(-?[0-9]+)\\.(-?[0-9]+)\\." + me.earthme.luminol.config.modules.function.RegionFormatConfig.regionFormat.getArgument() + "$");
++    private static final Pattern REGEX = Pattern.compile("^r\\.(-?[0-9]+)\\.(-?[0-9]+)\\." + me.earthme.luminol.config.modules.function.RegionFormatConfig.regionFormat.getArgument() + "$"); // Luminol - Configurable region file format
      private final DataFixer dataFixer;
      private final UpgradeProgress upgradeProgress;
      private final String type;

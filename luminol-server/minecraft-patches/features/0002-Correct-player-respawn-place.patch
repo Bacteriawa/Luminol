@@ -39,7 +39,7 @@ index fbe0ef19bfabfc42d9e0e08e17b08159321b3804..22b73403b9840d8b4ef6065b85d17355
          for (int dz = -SPAWN_RADIUS_SELECTION_SEARCH; dz <= SPAWN_RADIUS_SELECTION_SEARCH; ++dz) {
              for (int dx = -SPAWN_RADIUS_SELECTION_SEARCH; dx <= SPAWN_RADIUS_SELECTION_SEARCH; ++dx) {
 -                BlockPos inChunk = PlayerSpawnFinder.getLevelRespawnPos(world, selected.getX() + dx, selected.getZ() + dz);
-+                inChunk = PlayerSpawnFinder.getLevelRespawnPos(world, selected.getX() + dx, selected.getZ() + dz);
++                inChunk = PlayerSpawnFinder.getLevelRespawnPos(world, selected.getX() + dx, selected.getZ() + dz); // Luminol - Correct player respawn place
                  if (inChunk == null) {
                      continue;
                  }
@@ -48,7 +48,7 @@ index fbe0ef19bfabfc42d9e0e08e17b08159321b3804..22b73403b9840d8b4ef6065b85d17355
  
          if (newLevel.dimension() == lastDimension) {
 -            this.connection.internalTeleport(PositionMoveRotation.of(transition), transition.relatives()); // CraftBukkit  
-+            this.connection.internalTeleport(PositionMoveRotation.of(transition), transition.relatives()); // CraftBukkit
++            this.connection.internalTeleport(PositionMoveRotation.of(transition), transition.relatives()); // CraftBukkit // Luminol - Correct player respawn place
              this.connection.resetPosition();
              transition.postTeleportTransition().onTransition(this);
              return this;
