@@ -18,7 +18,7 @@ index d5506bfc84912ec50cd5391225b9b5291435d3aa..6339a770526324bdc1bcc0c0e3bacc0a
  
          if (hitResult != null && this.isAlive() && hitResult.getType() != HitResult.Type.MISS) {
 diff --git a/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java b/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
-index 0b03572b19cf869da7ed1d2ca24e05d7b08a4466..16554f8fa7004060db3df10e5628ee337a1ce640 100644
+index 88c2f0f927bd8376522eb9aed184abd6f09230f6..d66a4826400eca835645e1115c4fefc61715f336 100644
 --- a/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
 +++ b/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
 @@ -276,7 +276,7 @@ public abstract class AbstractArrow extends Projectile {

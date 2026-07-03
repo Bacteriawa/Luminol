@@ -82,7 +82,7 @@ index a7f2cfa9277c898038f6b9e0a3401db51012b64c..db4dba8849eb27f8f84acc3297e342da
 +public record FileToUpgrade(abomination.IRegionFile file, List<ChunkPos> chunksToUpgrade) { // Luminol - Configurable region file format
  }
 diff --git a/net/minecraft/util/worldupdate/RegionStorageUpgrader.java b/net/minecraft/util/worldupdate/RegionStorageUpgrader.java
-index b228cd6c54e8c8998923ab332882d99092769c67..95ba9cf20a4c159575b44d233c3f544f6cb9c9fd 100644
+index b228cd6c54e8c8998923ab332882d99092769c67..140ef4959fa2fe5b9cd251955c93683e8e69d5ba 100644
 --- a/net/minecraft/util/worldupdate/RegionStorageUpgrader.java
 +++ b/net/minecraft/util/worldupdate/RegionStorageUpgrader.java
 @@ -36,7 +36,7 @@ import org.slf4j.Logger;

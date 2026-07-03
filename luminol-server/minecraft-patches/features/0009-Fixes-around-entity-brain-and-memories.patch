@@ -261,7 +261,7 @@ index c3667e7997551e0f5ce63bc6ee890082d1431400..2e2458535a8ec542d6371ceba2fff126
                  return Optional.of(new BlockPosTracker(position.pos().above()));
              }
 diff --git a/net/minecraft/world/entity/animal/sniffer/Sniffer.java b/net/minecraft/world/entity/animal/sniffer/Sniffer.java
-index d5394ae7ce56555ad21aeafb2d78c291c62e2988..01fb65b7e9b7e70e7711ffc250b97544344a5ddf 100644
+index d5394ae7ce56555ad21aeafb2d78c291c62e2988..a2873d8bbfa3e04678bc31637222b3a10cd6fedd 100644
 --- a/net/minecraft/world/entity/animal/sniffer/Sniffer.java
 +++ b/net/minecraft/world/entity/animal/sniffer/Sniffer.java
 @@ -279,8 +279,18 @@ public class Sniffer extends Animal {

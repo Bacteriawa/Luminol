@@ -137,7 +137,7 @@ index 2e71a1cbabf3405e3e4fd5349a1784d895e7e60c..42de919064680b1a464d813976ca5e69
                  if (!itemStack.isEmpty()) {
                      slots.add(Pair.of(slot, itemStack.copy()));
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index de66667ad8630f397b1080ee41d73fa24480f0d7..7c479dea2b33c3a1a4dd72f4d13658ba8c596e42 100644
+index 093c48e2379c01f45277b88f6c1b19b107a46326..b4d8cc8b520266abe1921b5e990c34fce3f1d982 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -1424,7 +1424,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -300,7 +300,7 @@ index a4bc767b799c050ce07a3685f655b4ba947d2466..a447b9fbb579591c62b3d8f8e2527796
              Equippable equippable = itemStack.get(DataComponents.EQUIPPABLE);
              if (itemStack.is(item) && equippable != null && equippable.slot() == slot) {
 diff --git a/net/minecraft/world/item/ItemStack.java b/net/minecraft/world/item/ItemStack.java
-index 98675a13621b2bd99097f75771b82f363c73bdf4..ab3e1639410269202c0975c11870319e7eaec8a3 100644
+index d289a39a2545053365c933396847ab2e1d42c5ae..173d4c93c4f3a361946b6fe5d2aa55d596641a98 100644
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
 @@ -1182,7 +1182,7 @@ public final class ItemStack implements DataComponentHolder, ItemInstance, Chang

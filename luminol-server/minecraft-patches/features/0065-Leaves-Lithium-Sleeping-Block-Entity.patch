@@ -459,7 +459,7 @@ index 136e018d83c5be90894358a97b23f5fcfa6c0d38..c063694237c0c98ad370ac7fc170172f
              ItemStack itemStack = container.getItem(i);
              if (!itemStack.isEmpty()) {
 diff --git a/net/minecraft/world/item/ItemStack.java b/net/minecraft/world/item/ItemStack.java
-index 21ccc49f945db2c5341622876a56025571ba5bc6..7fc924d3e8b83caf2e8a6a1ea73b390fd86a0b8b 100644
+index 872559c33de87e74c3ab5157f7dfddd2d26fd3a6..1ea9889656c01d5d197e11ac305af40779a077a7 100644
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
 @@ -98,8 +98,12 @@ import org.apache.commons.lang3.function.TriConsumer;
