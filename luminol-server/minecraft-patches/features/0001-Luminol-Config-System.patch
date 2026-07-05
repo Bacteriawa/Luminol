@@ -17,10 +17,10 @@ index a4d608d64b7d3477c9144d93547fd3b4f39a1b02..2a75f8fbd2e5f41ca138740319d34683
              Bootstrap.bootStrap();
              Bootstrap.validate();
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 8ec86d7485efbb275c85d8226ea93a7bbd72342c..471107d4083897c5ba92f6bfcce25194b62dbc00 100644
+index c6a4d52f76e10fcc57b2c49b07fbc2ef9bb90822..756e8d219c70cfeb2283cb2ed08b497373a2c798 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1203,6 +1203,9 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1169,6 +1169,9 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              ca.spottedleaf.moonrise.common.util.MoonriseCommon.haltExecutors();
          }
          // Paper end - rewrite chunk system
