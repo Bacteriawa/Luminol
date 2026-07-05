@@ -16,6 +16,20 @@ index a4d608d64b7d3477c9144d93547fd3b4f39a1b02..2a75f8fbd2e5f41ca138740319d34683
              io.papermc.paper.plugin.PluginInitializerManager.load(options); // Paper
              Bootstrap.bootStrap();
              Bootstrap.validate();
+diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
+index 8ec86d7485efbb275c85d8226ea93a7bbd72342c..471107d4083897c5ba92f6bfcce25194b62dbc00 100644
+--- a/net/minecraft/server/MinecraftServer.java
++++ b/net/minecraft/server/MinecraftServer.java
+@@ -1203,6 +1203,9 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             ca.spottedleaf.moonrise.common.util.MoonriseCommon.haltExecutors();
+         }
+         // Paper end - rewrite chunk system
++        // Luminol start - Config Systems
++        me.earthme.luminol.config.ConfigManager.saveConfigs(false);
++        // Luminol end
+         // Paper start - Improved watchdog support - move final shutdown items here
+         Util.shutdownExecutors();
+         this.onServerExit();
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
 index cd5551c0221ad2a7b5c7d452d8d91ffc9711c3ee..1ad4704523a3d90414ac514488207b1b5def9afd 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
