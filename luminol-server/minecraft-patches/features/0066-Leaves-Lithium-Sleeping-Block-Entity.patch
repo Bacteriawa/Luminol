@@ -1,6 +1,6 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Helvetica Volubi <suisuroru@blue-millennium.fun>
-Date: Sun, 28 Jun 2026 21:01:58 +0800
+From: MrHua269 <mrhua269@gmail.com>
+Date: Sun, 5 Jul 2026 23:31:44 +0800
 Subject: [PATCH] Leaves Lithium Sleeping Block Entity
 
 As a part of leaves
@@ -9,10 +9,10 @@ Origin patch link: https://github.com/LeavesMC/Leaves/blob/master/leaves-server/
 Origin license: https://github.com/LeavesMC/Leaves/blob/master/LICENSE.md
 
 diff --git a/io/papermc/paper/threadedregions/RegionizedWorldData.java b/io/papermc/paper/threadedregions/RegionizedWorldData.java
-index 698f66ff886aca4ca65e9b0e177c24eda6a1537a..6a90942f4fc3c0b366aadf7a4cead6f684eba1cd 100644
+index c9f2d54be6f0699c2bf922c66ba0bafc7fb83ccc..24e186d05aa0333885178f444fade3b9c930ac97 100644
 --- a/io/papermc/paper/threadedregions/RegionizedWorldData.java
 +++ b/io/papermc/paper/threadedregions/RegionizedWorldData.java
-@@ -62,6 +62,10 @@ import java.util.Set;
+@@ -65,6 +65,10 @@ import java.util.Set;
  import java.util.concurrent.CopyOnWriteArrayList;
  import java.util.function.Consumer;
  import java.util.function.Predicate;
@@ -23,7 +23,7 @@ index 698f66ff886aca4ca65e9b0e177c24eda6a1537a..6a90942f4fc3c0b366aadf7a4cead6f6
  
  public final class RegionizedWorldData {
  
-@@ -72,6 +76,32 @@ public final class RegionizedWorldData {
+@@ -75,6 +79,32 @@ public final class RegionizedWorldData {
      public static final RegionizedData.RegioniserCallback<RegionizedWorldData> REGION_CALLBACK = new RegionizedData.RegioniserCallback<>() {
          @Override
          public void merge(final RegionizedWorldData from, final RegionizedWorldData into, final long fromTickOffset) {
@@ -56,7 +56,7 @@ index 698f66ff886aca4ca65e9b0e177c24eda6a1537a..6a90942f4fc3c0b366aadf7a4cead6f6
              // connections
              for (final Connection conn : from.connections) {
                  into.connections.add(conn);
-@@ -111,16 +141,22 @@ public final class RegionizedWorldData {
+@@ -114,16 +144,22 @@ public final class RegionizedWorldData {
              from.fluidLevelTicks.merge(into.fluidLevelTicks, fromRedstoneTimeOffset);
  
              // tile entity ticking
@@ -83,7 +83,7 @@ index 698f66ff886aca4ca65e9b0e177c24eda6a1537a..6a90942f4fc3c0b366aadf7a4cead6f6
                  if (tileEntity != null) {
                      tileEntity.updateTicks(fromTickOffset, fromRedstoneTimeOffset);
                  }
-@@ -164,6 +200,37 @@ public final class RegionizedWorldData {
+@@ -167,6 +203,37 @@ public final class RegionizedWorldData {
          public void split(final RegionizedWorldData from, final int chunkToRegionShift,
                            final Long2ReferenceOpenHashMap<RegionizedWorldData> regionToData,
                            final ReferenceOpenHashSet<RegionizedWorldData> dataSet) {
@@ -121,7 +121,7 @@ index 698f66ff886aca4ca65e9b0e177c24eda6a1537a..6a90942f4fc3c0b366aadf7a4cead6f6
              // connections
              for (final Connection conn : from.connections) {
                  final ServerPlayer player = conn.getPlayer();
-@@ -240,8 +307,9 @@ public final class RegionizedWorldData {
+@@ -243,8 +310,9 @@ public final class RegionizedWorldData {
              from.fluidLevelTicks.split(chunkToRegionShift, levelTicksFluidRegionData);
  
              // tile entity ticking
@@ -133,7 +133,7 @@ index 698f66ff886aca4ca65e9b0e177c24eda6a1537a..6a90942f4fc3c0b366aadf7a4cead6f6
                  final int chunkX = pos.getX() >> 4;
                  final int chunkZ = pos.getZ() >> 4;
  
-@@ -251,8 +319,9 @@ public final class RegionizedWorldData {
+@@ -254,8 +322,9 @@ public final class RegionizedWorldData {
                  } // else: when a chunk unloads, it does not actually _remove_ the tile entity from the list, it just gets
                    //       marked as removed. So if there is no section, it's probably removed!
              }
@@ -145,10 +145,10 @@ index 698f66ff886aca4ca65e9b0e177c24eda6a1537a..6a90942f4fc3c0b366aadf7a4cead6f6
                  final int chunkX = pos.getX() >> 4;
                  final int chunkZ = pos.getZ() >> 4;
  
-@@ -483,6 +552,11 @@ public final class RegionizedWorldData {
-     // Redstone
-     public final alternate.current.wire.WireHandler wireHandler;
+@@ -488,6 +557,11 @@ public final class RegionizedWorldData {
      public final io.papermc.paper.redstone.RedstoneWireTurbo turbo;
+     // Environment attribute system
+     public Reference2ObjectOpenHashMap<EnvironmentAttribute<?>, EnvironmentAttributeSystem.ValueSampler<?>> attributeSamplers;
 +    // Luminol start - Lithium sleeping block entity
 +    // Lithium
 +    public final Map<Long, ChunkSectionInventoryEntityTracker> containerEntityMovementTrackerMap = new it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap<>();
@@ -240,7 +240,7 @@ index 6e08d50794c4af4405f3e164a3fd46f376b3f78f..dd2d0940eece3e85078e574f66f71a4c
  
      int getContainerSize();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 348e1c75acf46f31bbc10c6a12ea3771d94b5247..8d6c40bd59c317b8cd3e03047f87d04d83a621a3 100644
+index 4ba8385302f600809111e0a6e83d182dd243855c..aa52a619a366ae6cb24a1e86b2ce948d2798db0b 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -324,7 +324,7 @@ public abstract class Entity
@@ -252,7 +252,7 @@ index 348e1c75acf46f31bbc10c6a12ea3771d94b5247..8d6c40bd59c317b8cd3e03047f87d04d
      private final VecDeltaCodec packetPositionCodec = new VecDeltaCodec();
      public boolean needsSync;
      public boolean syncPosition;
-@@ -4470,11 +4470,13 @@ public abstract class Entity
+@@ -4471,11 +4471,13 @@ public abstract class Entity
      }
  
      protected Entity transformForAsyncTeleport(ServerLevel destination, Vec3 pos, Float yaw, Float pitch, Vec3 velocity) {
@@ -266,7 +266,7 @@ index 348e1c75acf46f31bbc10c6a12ea3771d94b5247..8d6c40bd59c317b8cd3e03047f87d04d
          if (copy instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon dragon) dragon.syncDragonPartsAfterTeleportTransform(); // Luminol - Sync dragon part when teleportation or firstly created
          // vanilla code used to call remove _after_ copying, and some stuff is required to be after copy - so add hook here
          // for example, clearing of inventory after switching dimensions
-@@ -6065,8 +6067,29 @@ public abstract class Entity
+@@ -6066,8 +6068,29 @@ public abstract class Entity
              this.setBoundingBox(this.makeBoundingBox());
          }
          // Paper end - Block invalid positions and bounding box
@@ -459,7 +459,7 @@ index 136e018d83c5be90894358a97b23f5fcfa6c0d38..c063694237c0c98ad370ac7fc170172f
              ItemStack itemStack = container.getItem(i);
              if (!itemStack.isEmpty()) {
 diff --git a/net/minecraft/world/item/ItemStack.java b/net/minecraft/world/item/ItemStack.java
-index 872559c33de87e74c3ab5157f7dfddd2d26fd3a6..1ea9889656c01d5d197e11ac305af40779a077a7 100644
+index dc1e9acce122f3ebd7bf2b03150b4045db9493df..5cbfc9e178b5823f92c0afedb1b0248d34c96292 100644
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
 @@ -98,8 +98,12 @@ import org.apache.commons.lang3.function.TriConsumer;
@@ -600,7 +600,7 @@ index 872559c33de87e74c3ab5157f7dfddd2d26fd3a6..1ea9889656c01d5d197e11ac305af407
 +    // Leaves end - Lithium Sleeping Block Entity
  }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 4852a3fcf490e26cbf0a24b916acec6268cf9054..f83b695b2643f4156e5a7620fdc18800b127d719 100644
+index 6fd7bfa561f71cfd043d7a1092d77b01bb320640..87fb17917f4cecfef2d5d03bf8fd6e61d075212e 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -1553,7 +1553,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -1573,7 +1573,7 @@ index 6109d8da984b398bb1eb6cd6ab9a55f0511a615c..1109013d0d321f96a11fc4eb437aecaf
 +    // Leaves end - Lithium Sleeping Block Entity
  }
 diff --git a/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index a858cb658af70f07614fa1f4d9e8a3435d5c161f..cf61e529f6c178adc30d2668eb295c5a501adf1e 100644
+index 4c9d0bcd8820b250b51c06fff4531021ab57d408..18e6dd47b0525531bae56e0ab3c3846185470ce4 100644
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -27,8 +27,29 @@ import net.minecraft.world.level.storage.ValueInput;
@@ -1660,7 +1660,7 @@ index a858cb658af70f07614fa1f4d9e8a3435d5c161f..cf61e529f6c178adc30d2668eb295c5a
                  return true;
              }
          }
-@@ -387,6 +428,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -406,6 +447,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      private static void applyCooldown(final Hopper hopper) {
          if (hopper instanceof HopperBlockEntity blockEntity && blockEntity.getLevel() != null) {
              blockEntity.setCooldown(blockEntity.getLevel().spigotConfig.hopperTransfer);
@@ -1668,7 +1668,7 @@ index a858cb658af70f07614fa1f4d9e8a3435d5c161f..cf61e529f6c178adc30d2668eb295c5a
          }
      }
  
-@@ -430,12 +472,20 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -449,12 +491,20 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      // Paper end - Perf: Optimize Hoppers
  
      private static boolean ejectItems(final Level level, final BlockPos blockPos, final HopperBlockEntity self) {
@@ -1690,7 +1690,7 @@ index a858cb658af70f07614fa1f4d9e8a3435d5c161f..cf61e529f6c178adc30d2668eb295c5a
          if (isFullContainer(container, direction)) {
              return false;
          }
-@@ -491,13 +541,21 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -510,13 +560,21 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
          io.papermc.paper.threadedregions.RegionizedWorldData worldData = io.papermc.paper.threadedregions.TickRegionScheduler.getCurrentRegionizedWorldData(); // Folia - region threading
          BlockPos blockPos = BlockPos.containing(hopper.getLevelX(), hopper.getLevelY() + 1.0, hopper.getLevelZ());
          BlockState blockState = level.getBlockState(blockPos);
@@ -1716,7 +1716,7 @@ index a858cb658af70f07614fa1f4d9e8a3435d5c161f..cf61e529f6c178adc30d2668eb295c5a
                      return true;
                  }
              }
-@@ -508,7 +566,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -527,7 +585,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
                  && blockState.isCollisionShapeFullBlock(level, blockPos)
                  && !blockState.is(BlockTags.DOES_NOT_BLOCK_HOPPERS);
              if (!isBlocked) {
@@ -1725,7 +1725,7 @@ index a858cb658af70f07614fa1f4d9e8a3435d5c161f..cf61e529f6c178adc30d2668eb295c5a
                      if (addItem(hopper, entity)) {
                          return true;
                      }
-@@ -630,7 +688,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -649,7 +707,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
  
      // CraftBukkit start
      private static @Nullable Container runHopperInventorySearchEvent(
@@ -1734,7 +1734,7 @@ index a858cb658af70f07614fa1f4d9e8a3435d5c161f..cf61e529f6c178adc30d2668eb295c5a
          org.bukkit.craftbukkit.block.CraftBlock hopper,
          org.bukkit.craftbukkit.block.CraftBlock searchLocation,
          org.bukkit.event.inventory.HopperInventorySearchEvent.ContainerType containerType
-@@ -756,6 +814,19 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -775,6 +833,19 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      }
  
      public void setCooldown(final int time) {
@@ -1754,7 +1754,7 @@ index a858cb658af70f07614fa1f4d9e8a3435d5c161f..cf61e529f6c178adc30d2668eb295c5a
          this.cooldownTime = time;
      }
  
-@@ -775,6 +846,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -794,6 +865,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      @Override
      protected void setItems(final NonNullList<ItemStack> items) {
          this.items = items;
@@ -1762,7 +1762,7 @@ index a858cb658af70f07614fa1f4d9e8a3435d5c161f..cf61e529f6c178adc30d2668eb295c5a
      }
  
      public static void entityInside(final Level level, final BlockPos pos, final BlockState blockState, final Entity entity, final HopperBlockEntity hopper) {
-@@ -789,4 +861,758 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -808,4 +880,758 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      protected AbstractContainerMenu createMenu(final int containerId, final Inventory inventory) {
          return new HopperMenu(containerId, inventory, this);
      }
@@ -2646,7 +2646,7 @@ index ed5a5fb38bfe8fb9216c7eab00b833485c4bbade..fc45703525901d700c98b5ad0c6eb10b
      ) {
          for (int x = 0; x < this.width; x++) {
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index bf2466c4aa8f81aa2ec624020061af0b88598d8e..ee4cba0b1e8614a16775d465ee2f975824a3441a 100644
+index 0e84b695a677e71f443a29c78fc5025eec7ae7f4..a74eb2079863e4aaa8e982497c0fcd890d7de44b 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -622,6 +622,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot

@@ -9,10 +9,10 @@ Original patch: https://github.com/pufferfish-gg/Pufferfish/blob/ver/1.21/puffer
 Original license(GPL-3.0): https://github.com/pufferfish-gg/Pufferfish/blob/ver/1.21/PATCH-LICENSE
 
 diff --git a/io/papermc/paper/threadedregions/RegionizedWorldData.java b/io/papermc/paper/threadedregions/RegionizedWorldData.java
-index b7a7dec104d3c8463e94e2ba9b1841d22097d232..698f66ff886aca4ca65e9b0e177c24eda6a1537a 100644
+index 48fea9051efe038a823d7c2c9ae3bf28078f2fcc..c9f2d54be6f0699c2bf922c66ba0bafc7fb83ccc 100644
 --- a/io/papermc/paper/threadedregions/RegionizedWorldData.java
 +++ b/io/papermc/paper/threadedregions/RegionizedWorldData.java
-@@ -336,6 +336,10 @@ public final class RegionizedWorldData {
+@@ -339,6 +339,10 @@ public final class RegionizedWorldData {
  
      private RegionizedServer.WorldLevelData tickData;
  

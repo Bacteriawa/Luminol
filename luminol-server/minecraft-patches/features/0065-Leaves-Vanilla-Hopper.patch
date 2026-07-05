@@ -9,10 +9,10 @@ Origin patch link: https://github.com/LeavesMC/Leaves/blob/master/leaves-server/
 Origin license: https://github.com/LeavesMC/Leaves/blob/master/LICENSE.md
 
 diff --git a/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index cf61e529f6c178adc30d2668eb295c5a501adf1e..18e6dd47b0525531bae56e0ab3c3846185470ce4 100644
+index a858cb658af70f07614fa1f4d9e8a3435d5c161f..4c9d0bcd8820b250b51c06fff4531021ab57d408 100644
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-@@ -322,36 +322,55 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -281,36 +281,55 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
          ItemStack movedItem = origItemStack;
          final int originalItemCount = origItemStack.getCount();
          final int movedItemCount = Math.min(level.spigotConfig.hopperAmount, originalItemCount);

@@ -171,7 +171,7 @@ index e5304e9d1ea57c01a1147621a42a9b584878f765..af337f77545df94760b12a2b2f5eaf43
  
      @Override
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index f57ccfcd0a7c78d3ff0b1b8a7cbdb949e6b64e10..52d3adc3cff4024e7ce72f3104396002337b5bc0 100644
+index a239222bb9b00e4025d23b0312b0bf6e1f9bffc9..96a88debca1c313c1c451ff8be653cb39ad06cc6 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -2888,7 +2888,13 @@ public class ServerGamePacketListenerImpl
@@ -253,7 +253,7 @@ index f2329d1a9d9d4bf4c9d771e25e54f2f9ef65a76c..deee051c103f9797f4612e06c12f293e
  
      @Override
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index 3bcdbef413b6657a4a61bdb4097c4626e8c8e652..644bb099cf56a355dfff485c8025ab2f69a0b20a 100644
+index e7579a9873362317dd82b63306cf650af9472574..53449af103c1774f68cb0c296d47e7032e4e3843 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
 @@ -237,9 +237,11 @@ public abstract class PlayerList {

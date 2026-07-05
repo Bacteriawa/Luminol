@@ -42,7 +42,7 @@ index 3449918b5001bb39c541ce1168eac4acf9144e1f..a346b96500ae859e9469c80e2ff6b39c
          }
  
 diff --git a/io/papermc/paper/threadedregions/TickRegions.java b/io/papermc/paper/threadedregions/TickRegions.java
-index 35157edc2dc920372e39abbc7948435895ea7bbf..b03d47746879e57ad106bc1b736358d9a5ea1a9d 100644
+index a6ab9cb01f4f49f5f44b6ed324fa6d51139aabb6..97c514673a454b752ab86b944fd143725ca8090d 100644
 --- a/io/papermc/paper/threadedregions/TickRegions.java
 +++ b/io/papermc/paper/threadedregions/TickRegions.java
 @@ -156,6 +156,7 @@ public final class TickRegions implements ThreadedRegionizer.RegionCallbacks<Tic

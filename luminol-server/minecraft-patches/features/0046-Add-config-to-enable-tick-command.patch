@@ -6,12 +6,12 @@ Subject: [PATCH] Add config to enable tick command
 only freeze/unfreeze/step/query can run when enabled
 
 diff --git a/io/papermc/paper/threadedregions/RegionizedServer.java b/io/papermc/paper/threadedregions/RegionizedServer.java
-index f9e9c88cc9d7a26d7c13ef762b5ae221a552d168..dbd713226f45b8b9992aa349ddbbc1c69ed47c04 100644
+index ff90abb47203c03636d3175f2b3efcf43517b3b0..276349d778c2e6f0b1081eec4851bad5d25db237 100644
 --- a/io/papermc/paper/threadedregions/RegionizedServer.java
 +++ b/io/papermc/paper/threadedregions/RegionizedServer.java
-@@ -338,6 +338,11 @@ public final class RegionizedServer {
-         this.randomWalk();
-          */
+@@ -239,6 +239,11 @@ public final class RegionizedServer {
+ 
+     private void globalTick(final long tickCount) {
          ++this.tickCount;
 +        // Luminol start - Add a config to enable tick command
 +        if (me.earthme.luminol.config.modules.experiment.CommandConfig.tick) {
@@ -21,7 +21,7 @@ index f9e9c88cc9d7a26d7c13ef762b5ae221a552d168..dbd713226f45b8b9992aa349ddbbc1c6
          // expire invalid click command callbacks
          io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.ADVENTURE_CLICK_MANAGER.handleQueue((int)this.tickCount); // Paper // Folia - region threading - moved to global tick
          io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.DIALOG_CLICK_MANAGER.handleQueue((int)this.tickCount); // Paper // Folia - region threading - moved to global tick
-@@ -511,7 +516,7 @@ public final class RegionizedServer {
+@@ -415,7 +420,7 @@ public final class RegionizedServer {
      }
  
      private void tickTime(final ServerLevel world, final long tickCount) {

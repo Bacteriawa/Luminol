@@ -18,7 +18,7 @@ index 0fa14f60310b063f419620539fd40898627b46b9..9800ae1d3c49800b0c7342d43d696109
          WorldBorderCommand.register(this.dispatcher);
          if (JvmProfiler.INSTANCE.isAvailable()) {
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 02485bc6bced44e11a839c2206ed8d1bea466012..6cbca529aa925e56e5d137ab954ac17e7d6c151b 100644
+index 8929fbed68df5f2f7defb8a5842e977177fc2003..622954d1aa731b8f3765e06aca53817fb1ce8f97 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -3104,8 +3104,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -33,7 +33,7 @@ index 02485bc6bced44e11a839c2206ed8d1bea466012..6cbca529aa925e56e5d137ab954ac17e
                      level.players().forEach(waypointManager::updatePlayer);
                  } else {
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 247b9b8ace6dcc1a48680b10ef57a58935961837..8738947086c2c40cf813037cda3932d91d446a28 100644
+index 8ac8185451011508fa4838910d1bf60520ad031f..218598846a5672e2000108c97d9471a849c89b8a 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -689,7 +689,8 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet

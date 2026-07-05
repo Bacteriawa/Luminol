@@ -86,10 +86,10 @@ index f2208bcd5ccf3bd5a428e8ea3bf3ff26b3c9483b..d5c4e9b82f2ebc135b6747d19678b1a1
          LOGGER.info("Awaiting scheduler termination for 60s...");
          if (TickRegions.getScheduler().halt(true, TimeUnit.SECONDS.toNanos(60L))) {
 diff --git a/io/papermc/paper/threadedregions/RegionizedServer.java b/io/papermc/paper/threadedregions/RegionizedServer.java
-index 1b19b09adbfc05aced5d674518d69ba02a18b47f..f9e9c88cc9d7a26d7c13ef762b5ae221a552d168 100644
+index aa575f3b76ef70ffb9f0410e7e5cfe7af384bfbd..ff90abb47203c03636d3175f2b3efcf43517b3b0 100644
 --- a/io/papermc/paper/threadedregions/RegionizedServer.java
 +++ b/io/papermc/paper/threadedregions/RegionizedServer.java
-@@ -62,6 +62,12 @@ public final class RegionizedServer {
+@@ -63,6 +63,12 @@ public final class RegionizedServer {
          this.worlds.add(world);
      }
  
@@ -228,7 +228,7 @@ index 5a72fa0d72bfdb927293abe921c57f6ae964a6ec..f8344f640f119e3865f2718d1abd0ede
  
      private void uncaughtException(final Thread thread, final Throwable thr) {
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 18c4cc64b98b20e60a7c25c693717033f8e5b4ad..910f78a044070c7948d9f9ecb7771cea959fecdb 100644
+index 46f68d6612352ae7f1fbe258bbea6e01069597ea..0324dc7f38a628c36f673ff7dfd9d718095c06cb 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -236,7 +236,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -258,7 +258,7 @@ index 18c4cc64b98b20e60a7c25c693717033f8e5b4ad..910f78a044070c7948d9f9ecb7771cea
          Map<ResourceKey<Level>, ServerLevel> newLevels = Maps.newLinkedHashMap(oldLevels);
          newLevels.remove(level.dimension());
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index cb0dcb18e3d6b30d5a475582a1f8a5456e3d65a4..a22eaefafe6abb93608682e356faff11be6a1341 100644
+index c879fa8f0358f7445b3ba0a85639ed49688df441..680b86efd29b7c4e60a0ddd667aac83a9292d123 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -221,6 +221,12 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -429,7 +429,7 @@ index 48f51b0f94df3e59c9410129489c63a4287bc0bc..2682f8702785b1e501748a308c5e394b
          private final Vec2 spawnAngle;
  
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 1e6063ce93225bb03ef1b039f1415f2383c38b99..34b66f4fc0ecb55f3c4ecd16269047ff61cf295f 100644
+index 9dab43248bdefec7efe5ff73842fc601473f9e71..061c2d793b4c23448188dcdc0534dd55dc94de6f 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -392,6 +392,9 @@ public abstract class Entity
@@ -442,7 +442,7 @@ index 1e6063ce93225bb03ef1b039f1415f2383c38b99..34b66f4fc0ecb55f3c4ecd16269047ff
      // CraftBukkit end
  
      // Paper start
-@@ -4537,6 +4540,17 @@ public abstract class Entity
+@@ -4538,6 +4541,17 @@ public abstract class Entity
              }
          }
  
@@ -460,7 +460,7 @@ index 1e6063ce93225bb03ef1b039f1415f2383c38b99..34b66f4fc0ecb55f3c4ecd16269047ff
          // TODO any events that can modify go HERE
  
          // check for same region
-@@ -4555,6 +4569,14 @@ public abstract class Entity
+@@ -4556,6 +4570,14 @@ public abstract class Entity
              }
  
              for (EntityTreeNode entity : passengerTree.getFullTree()) {
@@ -475,7 +475,7 @@ index 1e6063ce93225bb03ef1b039f1415f2383c38b99..34b66f4fc0ecb55f3c4ecd16269047ff
                  entity.root.teleportSyncSameRegion(pos, yaw, pitch, velocity);
              }
  
-@@ -4570,8 +4592,8 @@ public abstract class Entity
+@@ -4571,8 +4593,8 @@ public abstract class Entity
                  // performs add/remove from world logic which will also perform add/remove tracker logic
              }
  
@@ -486,7 +486,7 @@ index 1e6063ce93225bb03ef1b039f1415f2383c38b99..34b66f4fc0ecb55f3c4ecd16269047ff
              }
              return true;
          }
-@@ -4588,7 +4610,7 @@ public abstract class Entity
+@@ -4589,7 +4611,7 @@ public abstract class Entity
              node.root = node.root.transformForAsyncTeleport(destination, pos, yaw, pitch, velocity);
          }
  
@@ -495,7 +495,7 @@ index 1e6063ce93225bb03ef1b039f1415f2383c38b99..34b66f4fc0ecb55f3c4ecd16269047ff
  
          return true;
      }
-@@ -4863,6 +4885,13 @@ public abstract class Entity
+@@ -4864,6 +4886,13 @@ public abstract class Entity
              ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkX(initialPosition),
              ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkZ(initialPosition)
          );
@@ -509,7 +509,7 @@ index 1e6063ce93225bb03ef1b039f1415f2383c38b99..34b66f4fc0ecb55f3c4ecd16269047ff
  
          // first, remove entity/passengers from world
          EntityTreeNode passengerTree = this.detachPassengers();
-@@ -4920,6 +4949,10 @@ public abstract class Entity
+@@ -4921,6 +4950,10 @@ public abstract class Entity
                      if (info.postTeleportTransition() != null) {
                          info.postTeleportTransition().onTransition(teleported);
                      }
