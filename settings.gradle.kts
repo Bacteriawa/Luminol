@@ -55,3 +55,5 @@ gradle.lifecycle.beforeProject {
     }
     version = versionString
 }
+
+include("MaplePile")
